@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json",
+  "url": "https://app.slack.com/client",
+  "name": "Slack",
+  "identifier": "com.josep.pake.slack",
+  "width": 1400,
+  "height": 900,
+  "hideTitleBar": true,
+  "newWindow": true,
+  "safeDomain": "slack.com,*.slack.com,accounts.google.com",
+  "enableDragDrop": true,
+  "targets": "apple"
+}

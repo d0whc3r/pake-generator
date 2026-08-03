@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json",
+  "url": "https://claude.ai",
+  "name": "Claude",
+  "identifier": "com.josep.pake.claude",
+  "width": 1200,
+  "height": 800,
+  "hideTitleBar": true,
+  "newWindow": true,
+  "safeDomain": "claude.ai,*.claude.ai,accounts.google.com",
+  "enableDragDrop": true,
+  "targets": "apple"
+}

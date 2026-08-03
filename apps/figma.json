@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json",
+  "url": "https://www.figma.com/files/recent",
+  "name": "Figma",
+  "identifier": "com.josep.pake.figma",
+  "width": 1600,
+  "height": 1000,
+  "hideTitleBar": true,
+  "newWindow": true,
+  "safeDomain": "figma.com,*.figma.com,accounts.google.com",
+  "targets": "apple"
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json",
+  "url": "https://calendar.notion.so",
+  "name": "Notion Calendar",
+  "identifier": "com.josep.pake.notion-calendar",
+  "width": 1280,
+  "height": 800,
+  "hideTitleBar": true,
+  "newWindow": true,
+  "safeDomain": "calendar.notion.so,notion.so,accounts.google.com",
+  "targets": "apple"
+}

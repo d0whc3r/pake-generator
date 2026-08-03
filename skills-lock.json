@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "pake": {
+      "source": "tw93/Pake",
+      "sourceType": "github",
+      "skillPath": "plugins/pake/skills/pake/SKILL.md",
+      "computedHash": "7c1e87c7f2092b3509e215a16bc159290de4a4fffd9443661de8eb0e817f63d5"
+    }
+  }
+}

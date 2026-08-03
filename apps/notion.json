@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json",
+  "url": "https://www.notion.so",
+  "name": "Notion",
+  "identifier": "com.josep.pake.notion",
+  "width": 1400,
+  "height": 900,
+  "hideTitleBar": true,
+  "newWindow": true,
+  "safeDomain": "notion.so,notion.com,accounts.google.com",
+  "enableDragDrop": true,
+  "targets": "apple"
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json",
+  "url": "https://discord.com/channels/@me",
+  "name": "Discord",
+  "identifier": "com.josep.pake.discord",
+  "width": 1280,
+  "height": 800,
+  "hideTitleBar": true,
+  "newWindow": true,
+  "safeDomain": "discord.com,*.discord.com,accounts.google.com",
+  "microphone": true,
+  "camera": true,
+  "targets": "apple"
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json",
+  "url": "https://web.telegram.org/k/",
+  "name": "Telegram",
+  "identifier": "com.josep.pake.telegram",
+  "width": 1200,
+  "height": 800,
+  "hideTitleBar": true,
+  "enableDragDrop": true,
+  "targets": "apple",
+  "appVersion": "1.0.0"
+}
