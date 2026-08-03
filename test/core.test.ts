@@ -30,6 +30,10 @@ describe('slugify', () => {
   it('quita caracteres no alfanumericos y guiones sobrantes', () => {
     expect(slugify('  --WhatsApp Web!!  ')).toBe('whatsapp-web')
   })
+
+  it('devuelve cadena vacia si no hay nada aprovechable', () => {
+    expect(slugify('!!!')).toBe('')
+  })
 })
 
 describe('isValidVersion', () => {
@@ -151,6 +155,17 @@ describe('registro de apps (fs)', () => {
     expect(() => selectApps([], dir)).toThrow('no hay apps en apps/')
   })
 
+  it('selectApps propaga el error si un id no existe', () => {
+    writeApp({ id: 'slack', name: 'Slack', url: 'https://slack.com' }, dir)
+    expect(() => selectApps(['slack', 'fantasma'], dir)).toThrow('no existe la app "fantasma"')
+  })
+
+  it('writeApp crea el directorio de destino si no existe', () => {
+    const nested = path.join(dir, 'nuevo', 'apps')
+    writeApp({ id: 'demo', name: 'Demo', url: 'https://demo.com' }, nested)
+    expect(fs.existsSync(path.join(nested, 'demo.json'))).toBe(true)
+  })
+
   it('bumpAppVersion actualiza el JSON y lo registra en el log', () => {
     writeApp({ appVersion: '1.2.3', id: 'demo', name: 'Demo', url: 'https://demo.com' }, dir)
     const messages: string[] = []
@@ -158,6 +173,12 @@ describe('registro de apps (fs)', () => {
     expect(app.appVersion).toBe('1.3.0')
     expect(readApp('demo', dir).appVersion).toBe('1.3.0')
     expect(messages).toEqual(['OK demo: v1.2.3 -> v1.3.0'])
+  })
+
+  it('bumpAppVersion acepta una version explicita', () => {
+    writeApp({ appVersion: '1.2.3', id: 'demo', name: 'Demo', url: 'https://demo.com' }, dir)
+    const app = bumpAppVersion('demo', '3.0.0', () => {}, dir)
+    expect(app.appVersion).toBe('3.0.0')
   })
 })
 

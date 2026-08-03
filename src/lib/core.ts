@@ -24,6 +24,8 @@ function findRoot(start: string): string {
 
 export const ROOT = findRoot(path.dirname(fileURLToPath(import.meta.url)))
 export const APPS_DIR = path.join(ROOT, 'apps')
+/** Snippets compartidos que las apps referencian por nombre en su campo `inject`. */
+export const INJECT_DIR = path.join(APPS_DIR, 'inject')
 export const DIST_DIR = path.join(ROOT, 'dist')
 export const STATE_FILE = path.join(DIST_DIR, 'state.json')
 export const APPLICATIONS_DIR = '/Applications'

@@ -6,9 +6,10 @@
   "width": 1400,
   "height": 900,
   "hideTitleBar": true,
-  "newWindow": true,
+  "newWindow": false,
   "safeDomain": "notion.so,notion.com,accounts.google.com",
+  "inject": ["popup-to-redirect.js"],
   "enableDragDrop": true,
   "targets": "apple",
-  "appVersion": "1.0.1"
+  "appVersion": "1.0.4"
 }

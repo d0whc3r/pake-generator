@@ -7,6 +7,7 @@ import {
   APPLICATIONS_DIR,
   appVersion,
   DIST_DIR,
+  INJECT_DIR,
   PAKE_BIN,
   readState,
   ROOT,
@@ -76,6 +77,28 @@ export function resolveBundle(outDir: string, outputs: { path: string; format: s
   throw new Error(`build terminado pero no se encontro ningun .app en ${outDir}`)
 }
 
+/**
+ * El campo `inject` de apps/<id>.json nombra snippets de apps/inject/ y se pasa
+ * por flag en vez de dejarlo en la config: pake resuelve las rutas relativas de
+ * la config contra su cwd, que durante el build es dist/<id>/.
+ */
+export function injectArgs(app: AppEntry, dir: string = INJECT_DIR): string[] {
+  const files = app.inject
+  if (files === undefined) {
+    return []
+  }
+  if (!Array.isArray(files) || files.some((file) => typeof file !== 'string')) {
+    throw new Error(`el campo "inject" de "${app.id}" debe ser una lista de nombres de archivo`)
+  }
+  return (files as string[]).flatMap((file) => {
+    const abs = path.isAbsolute(file) ? file : path.join(dir, file)
+    if (!fs.existsSync(abs)) {
+      throw new Error(`la app "${app.id}" inyecta "${file}" pero no existe ${abs}`)
+    }
+    return ['--inject', abs]
+  })
+}
+
 export interface BuildOptions {
   debug?: boolean
   distDir?: string
@@ -90,8 +113,9 @@ export function buildApp(app: AppEntry, options: BuildOptions = {}): string {
   fs.rmSync(outDir, { force: true, recursive: true })
   fs.mkdirSync(outDir, { recursive: true })
 
+  const args = [app.url, '--config', appFile(app.id), '--app-version', version, ...injectArgs(app)]
   // --json: logs a stderr, un unico JSON con el resultado a stdout (agent mode).
-  const args = [app.url, '--config', appFile(app.id), '--app-version', version, '--json']
+  args.push('--json')
   if (debug) {
     args.push('--debug')
   }

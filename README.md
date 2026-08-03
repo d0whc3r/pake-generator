@@ -19,6 +19,19 @@ mas un campo propio `appVersion` (semver) que gestiona este repo.
 Los builds se generan en `dist/<id>/` (ignorado por git) y el estado del
 ultimo build queda en `dist/state.json`.
 
+### Snippets inyectados
+
+`apps/inject/` guarda los JS/CSS que se inyectan en la pagina, compartidos entre
+apps. Una app los usa nombrandolos en su campo `inject`:
+
+```json
+"inject": ["popup-to-redirect.js"]
+```
+
+Los nombres se resuelven contra `apps/inject/` y se pasan a pake por flag, no en
+la config: pake resuelve las rutas relativas de la config contra su cwd, que
+durante el build es `dist/<id>/`.
+
 ## Uso diario
 
 ```sh
