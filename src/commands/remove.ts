@@ -5,18 +5,18 @@ import { appFile, DIST_DIR, readApp, readState, writeState } from '../lib/core'
 import { uninstallApp } from '../lib/pake'
 
 export default class Remove extends Command {
-  static description = 'Elimina una app del registro (y de /Applications con --uninstall)'
+  static description = 'Remove an app from the registry (and from /Applications with --uninstall)'
 
   static examples = ['<%= config.bin %> remove telegram --uninstall']
 
   static args = {
-    id: Args.string({ description: 'ID de la app', required: true }),
+    id: Args.string({ description: 'App ID', required: true }),
   }
 
   static flags = {
     uninstall: Flags.boolean({
       default: false,
-      description: 'Elimina tambien el .app de /Applications',
+      description: 'Also remove the .app from /Applications',
     }),
   }
 
@@ -31,6 +31,6 @@ export default class Remove extends Command {
     const state = readState()
     delete state[app.id]
     writeState(state)
-    this.log(`OK app "${app.id}" eliminada del registro`)
+    this.log(`OK app "${app.id}" removed from the registry`)
   }
 }

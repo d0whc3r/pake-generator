@@ -2,7 +2,7 @@ import { Command } from '@oclif/core'
 import { appVersion, listAppIds, readApp, readState } from '../lib/core'
 
 export default class List extends Command {
-  static description = 'Lista las apps registradas, su version y ultimo build'
+  static description = 'List the registered apps, their version and last build'
 
   static examples = ['<%= config.bin %> list']
 
@@ -10,12 +10,12 @@ export default class List extends Command {
     await this.parse(List)
     const ids = listAppIds()
     if (ids.length === 0) {
-      this.log('No hay apps registradas. Anade una con:')
-      this.log('  pnpm pake add https://ejemplo.com --name "Ejemplo"')
+      this.log('No apps registered. Add one with:')
+      this.log('  pnpm pake add https://example.com --name "Example"')
       return
     }
     const state = readState()
-    this.log(`${'ID'.padEnd(18)} ${'VERSION'.padEnd(9)} ${'BUILD'.padEnd(9)} NOMBRE`)
+    this.log(`${'ID'.padEnd(18)} ${'VERSION'.padEnd(9)} ${'BUILD'.padEnd(9)} NAME`)
     for (const id of ids) {
       const app = readApp(id)
       const built = state[id]?.version ?? '-'

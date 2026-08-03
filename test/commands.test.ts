@@ -13,9 +13,9 @@ import Uninstall from '../src/commands/uninstall'
 import Update from '../src/commands/update'
 import { buildApp, installApp, uninstallApp } from '../src/lib/pake'
 
-// Los comandos usan las rutas por defecto de core (apps/, dist/state.json del
-// repo). Las redirigimos a un directorio temporal y sustituimos la capa de
-// pake por mocks: aqui probamos la orquestacion del CLI, no a pake.
+// The commands use core's default paths (the repo's apps/, dist/state.json).
+// We redirect them to a temporary directory and replace the pake layer with
+// mocks: what we test here is the CLI orchestration, not pake itself.
 const holder = vi.hoisted(() => ({ apps: '', dist: '', state: '' }))
 
 vi.mock('../src/lib/core', async (importActual) => {
@@ -109,7 +109,7 @@ function readSeededApp(id: string): Record<string, unknown> {
 }
 
 describe('add', () => {
-  it('crea apps/<id>.json con schema, identifier y version por defecto', async () => {
+  it('creates apps/<id>.json with the default schema, identifier and version', async () => {
     const { logs } = await runCommand(Add, ['https://demo.com', '--name', 'My Demo'])
 
     expect(readSeededApp('my-demo')).toEqual({
@@ -119,11 +119,11 @@ describe('add', () => {
       name: 'My Demo',
       url: 'https://demo.com',
     })
-    expect(logs[0]).toContain('registrada como apps/my-demo.json (v1.0.0)')
+    expect(logs[0]).toContain('registered as apps/my-demo.json (v1.0.0)')
     expect(logs[1]).toContain('pnpm pake install my-demo')
   })
 
-  it('respeta --id, --identifier, --version y los --set con tipos', async () => {
+  it('honors --id, --identifier, --version and the typed --set values', async () => {
     await runCommand(Add, [
       'https://x.com',
       '--name',
@@ -131,7 +131,7 @@ describe('add', () => {
       '--id',
       'custom',
       '--identifier',
-      'com.ejemplo.x',
+      'com.example.x',
       '--version',
       '2.1.0',
       '--set',
@@ -145,39 +145,39 @@ describe('add', () => {
     expect(readSeededApp('custom')).toMatchObject({
       appVersion: '2.1.0',
       hideTitleBar: true,
-      identifier: 'com.ejemplo.x',
+      identifier: 'com.example.x',
       theme: 'dark',
       width: 1200,
     })
   })
 
-  it('falla si la version no es x.y.z', async () => {
+  it('fails when the version is not x.y.z', async () => {
     await expect(
       runCommand(Add, ['https://demo.com', '--name', 'Demo', '--version', '1.0']),
-    ).rejects.toThrow('version no valida')
+    ).rejects.toThrow('invalid version')
   })
 
-  it('falla si --set no tiene formato clave=valor', async () => {
+  it('fails when --set is not in key=value format', async () => {
     await expect(
-      runCommand(Add, ['https://demo.com', '--name', 'Demo', '--set', 'solo-clave']),
-    ).rejects.toThrow('no tiene formato clave=valor')
+      runCommand(Add, ['https://demo.com', '--name', 'Demo', '--set', 'key-only']),
+    ).rejects.toThrow('is not in key=value format')
   })
 
-  it('falla si el id ya esta registrado', async () => {
+  it('fails when the id is already registered', async () => {
     seedApp('demo')
     await expect(
       runCommand(Add, ['https://demo.com', '--name', 'Demo', '--id', 'demo']),
-    ).rejects.toThrow('ya existe la app "demo"')
+    ).rejects.toThrow('app "demo" already exists')
   })
 })
 
 describe('list', () => {
-  it('avisa cuando no hay apps registradas', async () => {
+  it('warns when there are no registered apps', async () => {
     const { logs } = await runCommand(List, [])
-    expect(logs[0]).toContain('No hay apps registradas')
+    expect(logs[0]).toContain('No apps registered')
   })
 
-  it('muestra id, version de la config y version del ultimo build', async () => {
+  it('shows the id, the config version and the last build version', async () => {
     seedApp('slack', { appVersion: '1.2.3', name: 'Slack' })
     seedApp('figma', { name: 'Figma' })
     fs.writeFileSync(
@@ -197,26 +197,26 @@ describe('list', () => {
 })
 
 describe('bump', () => {
-  it('sube la appVersion del JSON y lo anuncia', async () => {
+  it('bumps the appVersion in the JSON and announces it', async () => {
     seedApp('demo', { appVersion: '1.0.0' })
     const { logs } = await runCommand(Bump, ['demo', 'minor'])
     expect(readSeededApp('demo').appVersion).toBe('1.1.0')
     expect(logs).toEqual(['OK demo: v1.0.0 -> v1.1.0'])
   })
 
-  it('usa patch por defecto', async () => {
+  it('defaults to patch', async () => {
     seedApp('demo', { appVersion: '1.0.0' })
     await runCommand(Bump, ['demo'])
     expect(readSeededApp('demo').appVersion).toBe('1.0.1')
   })
 
-  it('falla si la app no existe', async () => {
-    await expect(runCommand(Bump, ['fantasma'])).rejects.toThrow('no existe la app')
+  it('fails when the app does not exist', async () => {
+    await expect(runCommand(Bump, ['ghost'])).rejects.toThrow('does not exist in apps/')
   })
 })
 
 describe('build', () => {
-  it('compila solo los ids indicados', async () => {
+  it('builds only the given ids', async () => {
     seedApp('slack')
     seedApp('figma')
     await runCommand(Build, ['slack'])
@@ -224,33 +224,33 @@ describe('build', () => {
     expect(buildMock.mock.calls[0][0].id).toBe('slack')
   })
 
-  it('sin ids compila todas las apps registradas', async () => {
+  it('builds every registered app when no ids are given', async () => {
     seedApp('slack')
     seedApp('figma')
     await runCommand(Build, [])
     expect(buildMock.mock.calls.map(([app]) => app.id)).toEqual(['figma', 'slack'])
   })
 
-  it('propaga --debug a buildApp', async () => {
+  it('forwards --debug to buildApp', async () => {
     seedApp('slack')
     await runCommand(Build, ['slack', '--debug'])
     expect(buildMock.mock.calls[0][1]).toMatchObject({ debug: true })
   })
 
-  it('falla si no hay apps registradas', async () => {
-    await expect(runCommand(Build, [])).rejects.toThrow('no hay apps en apps/')
+  it('fails when there are no registered apps', async () => {
+    await expect(runCommand(Build, [])).rejects.toThrow('no apps in apps/')
   })
 })
 
 describe('install', () => {
-  it('instala solo los ids indicados', async () => {
+  it('installs only the given ids', async () => {
     seedApp('slack')
     seedApp('figma')
     await runCommand(Install, ['slack,figma'])
     expect(installMock.mock.calls.map(([app]) => app.id)).toEqual(['slack', 'figma'])
   })
 
-  it('sin ids instala todas y propaga --debug', async () => {
+  it('installs every app when no ids are given and forwards --debug', async () => {
     seedApp('slack')
     await runCommand(Install, ['--debug'])
     expect(installMock).toHaveBeenCalledTimes(1)
@@ -259,12 +259,12 @@ describe('install', () => {
 })
 
 describe('uninstall', () => {
-  it('exige al menos un id', async () => {
-    await expect(runCommand(Uninstall, [''])).rejects.toThrow('indica al menos un id')
+  it('requires at least one id', async () => {
+    await expect(runCommand(Uninstall, [''])).rejects.toThrow('give at least one id')
     expect(uninstallMock).not.toHaveBeenCalled()
   })
 
-  it('desinstala los ids indicados', async () => {
+  it('uninstalls the given ids', async () => {
     seedApp('slack')
     seedApp('figma')
     await runCommand(Uninstall, ['slack,figma'])
@@ -273,11 +273,11 @@ describe('uninstall', () => {
 })
 
 describe('update', () => {
-  it('exige al menos un id', async () => {
-    await expect(runCommand(Update, [''])).rejects.toThrow('indica al menos un id')
+  it('requires at least one id', async () => {
+    await expect(runCommand(Update, [''])).rejects.toThrow('give at least one id')
   })
 
-  it('hace bump y luego instala la version ya actualizada', async () => {
+  it('bumps and then installs the already-updated version', async () => {
     seedApp('demo', { appVersion: '1.2.3' })
     const { logs } = await runCommand(Update, ['demo', '--release', 'major'])
 
@@ -289,7 +289,7 @@ describe('update', () => {
 })
 
 describe('remove', () => {
-  it('elimina el JSON, el dist y la entrada de estado sin tocar /Applications', async () => {
+  it('deletes the JSON, the dist dir and the state entry without touching /Applications', async () => {
     seedApp('demo')
     fs.mkdirSync(path.join(holder.dist, 'demo'), { recursive: true })
     fs.writeFileSync(
@@ -303,17 +303,17 @@ describe('remove', () => {
     expect(fs.existsSync(path.join(holder.dist, 'demo'))).toBe(false)
     expect(JSON.parse(fs.readFileSync(holder.state, 'utf8'))).toEqual({})
     expect(uninstallMock).not.toHaveBeenCalled()
-    expect(logs.at(-1)).toContain('eliminada del registro')
+    expect(logs.at(-1)).toContain('removed from the registry')
   })
 
-  it('con --uninstall desinstala el .app antes de borrar', async () => {
+  it('with --uninstall it uninstalls the .app before deleting', async () => {
     seedApp('demo')
     await runCommand(Remove, ['demo', '--uninstall'])
     expect(uninstallMock).toHaveBeenCalledTimes(1)
     expect(uninstallMock.mock.calls[0][0].id).toBe('demo')
   })
 
-  it('falla si la app no existe', async () => {
-    await expect(runCommand(Remove, ['fantasma'])).rejects.toThrow('no existe la app')
+  it('fails when the app does not exist', async () => {
+    await expect(runCommand(Remove, ['ghost'])).rejects.toThrow('does not exist in apps/')
   })
 })

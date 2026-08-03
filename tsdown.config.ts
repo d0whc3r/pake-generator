@@ -9,11 +9,15 @@ export default defineConfig({
   entry: ['src/cli.ts', 'src/commands/*.ts'],
   format: 'esm',
   hooks: {
-    // oclif sube directorios desde la entry hasta el primer package.json.
-    // Este manifiesto hace que el build descubra dist-cli/commands, mientras
-    // que en dev (tsx) se sigue usando src/commands del package.json raiz.
+    // oclif walks up directories from the entry to the first package.json.
+    // This manifest makes the build discover dist-cli/commands, while in dev
+    // (tsx) it keeps using src/commands from the root package.json.
     'build:done': () => {
-      const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')) as RootPackage
+      const raw: unknown = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+      if (!isRootPackage(raw)) {
+        throw new Error('package.json does not have the expected format')
+      }
+      const pkg = raw
       const manifest = {
         name: pkg.name,
         oclif: { ...pkg.oclif, commands: './commands' },
@@ -31,3 +35,13 @@ export default defineConfig({
   sourcemap: false,
   target: 'node24',
 })
+
+function isRootPackage(value: unknown): value is RootPackage {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    'oclif' in value &&
+    'version' in value
+  )
+}

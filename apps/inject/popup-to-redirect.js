@@ -1,32 +1,37 @@
-// Convierte los popups de login en navegacion a pagina completa.
+// Turns login popups into full-page navigation.
 //
-// Por que hace falta: los popups nativos estan desactivados (newWindow:false)
-// porque en macOS 26 crashean la app, y el window.open de Pake solo sabe
-// navegar la URL del popup en la ventana actual. Eso basta cuando el popup va
-// directo al proveedor, pero no cuando el sitio abre una pagina intermedia que
-// depende de window.opener: sin opener se queda muerta.
+// Why this is needed: native popups are disabled (newWindow:false) because they
+// crash the app on macOS 26, and Pake's window.open only knows how to navigate
+// the popup URL in the current window. That is enough when the popup goes
+// straight to the provider, but not when the site opens an intermediate page
+// that depends on window.opener: without an opener it just hangs.
 //
-// La parte generica es el mecanismo: interceptar window.open y navegar. Lo que
-// no puede serlo es la reescritura, porque cada sitio codifica su contrato de
-// popup a su manera. Cada entrada de REWRITES recibe la URL del popup y
-// devuelve la URL equivalente en modo redirect, o null si no la reconoce.
+// The generic part is the mechanism: intercept window.open and navigate. What
+// cannot be generic is the rewrite, because every site encodes its popup
+// contract its own way. Each REWRITES entry receives the popup URL and returns
+// the equivalent redirect-mode URL, or null if it does not recognize it.
+/** @type {Array<(popup: URL) => URL | null>} */
 const REWRITES = [
-  // Notion (www.notion.so, app.notion.com, calendar.notion.so). Abre
-  // /verifyNoPopupBlockerHtmlAndRedirect con el destino real en redirectUri, y
-  // ese destino acepta callbackType=redirect para volver por su propio callback
-  // en vez de hablar con window.opener.
+  // Notion (www.notion.so, app.notion.com, calendar.notion.so). It opens
+  // /verifyNoPopupBlockerHtmlAndRedirect with the real destination in
+  // redirectUri, and that destination accepts callbackType=redirect to come
+  // back through its own callback instead of talking to window.opener.
   (popup) => {
     if (popup.pathname !== '/verifyNoPopupBlockerHtmlAndRedirect') {
       return null
     }
-    const target = new URL(popup.searchParams.get('redirectUri'), popup.origin)
+    const redirectUri = popup.searchParams.get('redirectUri')
+    if (!redirectUri) {
+      return null
+    }
+    const target = new URL(redirectUri, popup.origin)
     target.searchParams.set('callbackType', 'redirect')
     return target
   },
 ]
 
-// Pake envuelve este archivo en un listener de DOMContentLoaded y lo inyecta
-// despues de su event.js, asi que aqui window.open ya es el suyo.
+// Pake wraps this file in a DOMContentLoaded listener and injects it after its
+// own event.js, so window.open is already theirs by the time we get here.
 const previousOpen = window.open
 
 window.open = function (url, name, specs) {
@@ -40,7 +45,7 @@ window.open = function (url, name, specs) {
       }
     }
   } catch (error) {
-    console.warn('[pake-generator] no se pudo reescribir el popup:', error)
+    console.warn('[pake-generator] could not rewrite the popup:', error)
   }
   return previousOpen.call(window, url, name, specs)
 }

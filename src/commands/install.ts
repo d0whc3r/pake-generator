@@ -3,16 +3,16 @@ import { parseIds, selectApps } from '../lib/core'
 import { installApp } from '../lib/pake'
 
 export default class Install extends Command {
-  static description = 'Compila si hace falta e instala el .app en /Applications'
+  static description = 'Build if needed and install the .app into /Applications'
 
   static examples = ['<%= config.bin %> install telegram', '<%= config.bin %> install']
 
   static args = {
-    apps: Args.string({ description: 'IDs separados por coma (vacio = todas)', required: false }),
+    apps: Args.string({ description: 'Comma-separated IDs (empty = all)', required: false }),
   }
 
   static flags = {
-    debug: Flags.boolean({ default: false, description: 'Build en modo debug con salida verbose' }),
+    debug: Flags.boolean({ default: false, description: 'Debug build with verbose output' }),
   }
 
   async run(): Promise<void> {

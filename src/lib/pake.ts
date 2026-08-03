@@ -25,32 +25,35 @@ interface PakeResult {
 
 export function pakeCliVersion(): string | null {
   try {
-    const pkg = JSON.parse(
+    const pkg: unknown = JSON.parse(
       fs.readFileSync(path.join(ROOT, 'node_modules', 'pake-cli', 'package.json'), 'utf8'),
     )
-    return pkg.version as string
+    if (typeof pkg === 'object' && pkg !== null && 'version' in pkg) {
+      return typeof pkg.version === 'string' ? pkg.version : null
+    }
+    return null
   } catch {
     return null
   }
 }
 
-// Pake empaqueta en .dmg segun "targets"; extraemos el .app para instalarlo.
+// Pake bundles into a .dmg depending on "targets"; we extract the .app to install it.
 function extractFromDmg(dmgPath: string, outDir: string): string {
   const mountPoint = path.join(outDir, '.mnt')
   fs.rmSync(mountPoint, { force: true, recursive: true })
   fs.mkdirSync(mountPoint, { recursive: true })
   if (!run('hdiutil', ['attach', dmgPath, '-nobrowse', '-readonly', '-mountpoint', mountPoint])) {
-    throw new Error(`no se pudo montar ${dmgPath}`)
+    throw new Error(`could not mount ${dmgPath}`)
   }
   try {
     const found = fs.readdirSync(mountPoint).find((entry) => entry.endsWith('.app'))
     if (!found) {
-      throw new Error(`no se encontro ningun .app dentro de ${dmgPath}`)
+      throw new Error(`no .app found inside ${dmgPath}`)
     }
     const dest = path.join(outDir, found)
     fs.rmSync(dest, { force: true, recursive: true })
     if (!run('ditto', [path.join(mountPoint, found), dest])) {
-      throw new Error(`no se pudo extraer ${found} de ${dmgPath}`)
+      throw new Error(`could not extract ${found} from ${dmgPath}`)
     }
     return dest
   } finally {
@@ -74,29 +77,33 @@ export function resolveBundle(outDir: string, outputs: { path: string; format: s
   if (found) {
     return path.join(outDir, found)
   }
-  throw new Error(`build terminado pero no se encontro ningun .app en ${outDir}`)
+  throw new Error(`build finished but no .app found in ${outDir}`)
 }
 
 /**
- * El campo `inject` de apps/<id>.json nombra snippets de apps/inject/ y se pasa
- * por flag en vez de dejarlo en la config: pake resuelve las rutas relativas de
- * la config contra su cwd, que durante el build es dist/<id>/.
+ * The `inject` field of apps/<id>.json names snippets from apps/inject/ and is
+ * passed as a flag instead of left in the config: pake resolves the config's
+ * relative paths against its cwd, which during the build is dist/<id>/.
  */
 export function injectArgs(app: AppEntry, dir: string = INJECT_DIR): string[] {
   const files = app.inject
   if (files === undefined) {
     return []
   }
-  if (!Array.isArray(files) || files.some((file) => typeof file !== 'string')) {
-    throw new Error(`el campo "inject" de "${app.id}" debe ser una lista de nombres de archivo`)
+  if (!isStringArray(files)) {
+    throw new Error(`the "inject" field of "${app.id}" must be a list of file names`)
   }
-  return (files as string[]).flatMap((file) => {
+  return files.flatMap((file) => {
     const abs = path.isAbsolute(file) ? file : path.join(dir, file)
     if (!fs.existsSync(abs)) {
-      throw new Error(`la app "${app.id}" inyecta "${file}" pero no existe ${abs}`)
+      throw new Error(`app "${app.id}" injects "${file}" but ${abs} does not exist`)
     }
     return ['--inject', abs]
   })
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((file) => typeof file === 'string')
 }
 
 export interface BuildOptions {
@@ -114,7 +121,7 @@ export function buildApp(app: AppEntry, options: BuildOptions = {}): string {
   fs.mkdirSync(outDir, { recursive: true })
 
   const args = [app.url, '--config', appFile(app.id), '--app-version', version, ...injectArgs(app)]
-  // --json: logs a stderr, un unico JSON con el resultado a stdout (agent mode).
+  // --json: logs to stderr, a single JSON result object to stdout (agent mode).
   args.push('--json')
   if (debug) {
     args.push('--debug')
@@ -126,23 +133,27 @@ export function buildApp(app: AppEntry, options: BuildOptions = {}): string {
     stdio: ['ignore', 'pipe', 'inherit'],
   })
   if (result.error) {
-    throw new Error(`no se pudo ejecutar pake: ${result.error.message}`)
+    throw new Error(`could not run pake: ${result.error.message}`)
   }
 
   let parsed: PakeResult
   try {
-    parsed = JSON.parse(result.stdout.trim()) as PakeResult
+    const raw: unknown = JSON.parse(result.stdout.trim())
+    if (!isPakeResult(raw)) {
+      throw new Error('result without pake format')
+    }
+    parsed = raw
   } catch {
     throw new Error(
-      `salida inesperada de pake para "${app.id}" (exit ${result.status}): ${result.stdout}`,
+      `unexpected pake output for "${app.id}" (exit ${result.status}): ${result.stdout}`,
     )
   }
   if (!parsed.ok) {
     const detail = parsed.error
       ? `${parsed.error.message}${parsed.error.hint ? ` (${parsed.error.hint})` : ''}`
-      : 'desconocido'
+      : 'unknown'
     throw new Error(
-      `fallo el build de "${app.id}" [${parsed.error?.code ?? 'UNEXPECTED'}]: ${detail}`,
+      `build of "${app.id}" failed [${parsed.error?.code ?? 'UNEXPECTED'}]: ${detail}`,
     )
   }
 
@@ -156,6 +167,12 @@ export function buildApp(app: AppEntry, options: BuildOptions = {}): string {
   writeState(state, stateFile)
   log(`OK ${app.id} v${version} -> ${bundle}`)
   return bundle
+}
+
+function isPakeResult(value: unknown): value is PakeResult {
+  return (
+    typeof value === 'object' && value !== null && 'ok' in value && typeof value.ok === 'boolean'
+  )
 }
 
 export interface InstallOptions extends BuildOptions {
@@ -180,18 +197,18 @@ export function installApp(app: AppEntry, options: InstallOptions = {}): void {
     }
   }
   if (!bundle) {
-    log(`>> ${app.id}: no hay build de la v${version}, compilando...`)
+    log(`>> ${app.id}: no build for v${version}, building...`)
     bundle = buildApp(app, { debug: options.debug, distDir, log, stateFile })
   }
 
   const target = path.join(applicationsDir, path.basename(bundle))
   fs.rmSync(target, { force: true, recursive: true })
   if (!run('ditto', [bundle, target])) {
-    throw new Error(`no se pudo copiar ${bundle} a ${target}`)
+    throw new Error(`could not copy ${bundle} to ${target}`)
   }
-  // Por si acaso el bundle hereda atributos de cuarentena.
+  // Just in case the bundle inherits quarantine attributes.
   spawnSync('xattr', ['-dr', 'com.apple.quarantine', target], { stdio: 'ignore' })
-  log(`OK ${app.name} instalada en ${target}`)
+  log(`OK ${app.name} installed at ${target}`)
 }
 
 export function uninstallApp(
@@ -204,9 +221,9 @@ export function uninstallApp(
   const bundleName = state[app.id]?.bundle ?? `${app.name}.app`
   const target = path.join(applicationsDir, bundleName)
   if (!fs.existsSync(target)) {
-    log(`-- ${app.id}: no hay nada instalado en ${target}`)
+    log(`-- ${app.id}: nothing installed at ${target}`)
     return
   }
   fs.rmSync(target, { force: true, recursive: true })
-  log(`OK ${target} eliminada`)
+  log(`OK ${target} removed`)
 }

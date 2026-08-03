@@ -10,32 +10,32 @@ import {
 } from '../lib/core'
 
 export default class Add extends Command {
-  static description = 'Registra una app nueva creando apps/<id>.json con la config de Pake'
+  static description = 'Register a new app by creating apps/<id>.json with the Pake config'
 
   static examples = [
     '<%= config.bin %> add https://web.whatsapp.com --name "WhatsApp" --set width=1200 --set hideTitleBar=true',
   ]
 
   static args = {
-    url: Args.string({ description: 'URL de la web a empaquetar', required: true }),
+    url: Args.string({ description: 'URL of the website to package', required: true }),
   }
 
   static flags = {
-    id: Flags.string({ description: 'Identificador interno (por defecto, slug del nombre)' }),
-    identifier: Flags.string({ description: 'Bundle ID (por defecto com.pake.<slug>)' }),
-    name: Flags.string({ description: 'Nombre de la app (pasa a ser el .app)', required: true }),
+    id: Flags.string({ description: 'Internal identifier (defaults to the slug of the name)' }),
+    identifier: Flags.string({ description: 'Bundle ID (defaults to com.pake.<slug>)' }),
+    name: Flags.string({ description: 'App name (becomes the .app name)', required: true }),
     set: Flags.string({
-      description: 'Opcion de Pake como clave=valor (repetible, p. ej. --set width=1200)',
+      description: 'Pake option as key=value (repeatable, e.g. --set width=1200)',
       multiple: true,
     }),
-    version: Flags.string({ default: '1.0.0', description: 'Version inicial (appVersion)' }),
+    version: Flags.string({ default: '1.0.0', description: 'Initial version (appVersion)' }),
   }
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(Add)
 
     if (!isValidVersion(flags.version)) {
-      this.error(`version no valida: "${flags.version}" (usa formato x.y.z)`)
+      this.error(`invalid version: "${flags.version}" (use the x.y.z format)`)
     }
 
     const config: PakeConfig = {
@@ -48,19 +48,19 @@ export default class Add extends Command {
     for (const entry of flags.set ?? []) {
       const eq = entry.indexOf('=')
       if (eq === -1) {
-        this.error(`--set ${entry} no tiene formato clave=valor`)
+        this.error(`--set ${entry} is not in key=value format`)
       }
       config[entry.slice(0, eq)] = parseValue(entry.slice(eq + 1))
     }
 
     const id = flags.id ?? slugify(flags.name)
     if (fs.existsSync(appFile(id))) {
-      this.error(`ya existe la app "${id}" (${appFile(id)})`)
+      this.error(`app "${id}" already exists (${appFile(id)})`)
     }
 
     writeApp({ id, ...config })
-    this.log(`OK app "${config.name}" registrada como apps/${id}.json (v${flags.version})`)
-    this.log(`   Siguiente paso: pnpm pake install ${id}`)
+    this.log(`OK app "${config.name}" registered as apps/${id}.json (v${flags.version})`)
+    this.log(`   Next step: pnpm pake install ${id}`)
   }
 }
 

@@ -49,19 +49,19 @@ afterEach(() => {
 })
 
 describe('pakeCliVersion', () => {
-  it('devuelve la version de pake-cli instalada', () => {
+  it('returns the installed pake-cli version', () => {
     expect(pakeCliVersion()).toMatch(/^\d+\.\d+\.\d+$/)
   })
 })
 
 describe('resolveBundle', () => {
-  it('prefiere un .app directo de los outputs', () => {
+  it('prefers a direct .app from the outputs', () => {
     expect(resolveBundle('/tmp/out', [{ format: 'app', path: '/tmp/out/Demo.app' }])).toBe(
       '/tmp/out/Demo.app',
     )
   })
 
-  it('prefiere el .app directo aunque tambien haya un .dmg', () => {
+  it('prefers the direct .app even when there is also a .dmg', () => {
     const outputs = [
       { format: 'dmg', path: '/tmp/out/demo.dmg' },
       { format: 'app', path: '/tmp/out/Demo.app' },
@@ -70,17 +70,17 @@ describe('resolveBundle', () => {
     expect(spawnMock).not.toHaveBeenCalled()
   })
 
-  it('busca un .app en el directorio si no hay outputs', () => {
+  it('looks for a .app in the directory when there are no outputs', () => {
     const outDir = path.join(tmp, 'out')
     fs.mkdirSync(path.join(outDir, 'Demo.app'), { recursive: true })
     expect(resolveBundle(outDir, [])).toBe(path.join(outDir, 'Demo.app'))
   })
 
-  it('lanza error si no hay ningun .app', () => {
-    expect(() => resolveBundle(path.join(tmp, 'vacio'), [])).toThrow('no se encontro ningun .app')
+  it('throws when there is no .app at all', () => {
+    expect(() => resolveBundle(path.join(tmp, 'empty'), [])).toThrow('no .app found in')
   })
 
-  it('extrae el .app de un .dmg montandolo con hdiutil', () => {
+  it('extracts the .app from a .dmg by mounting it with hdiutil', () => {
     const outDir = path.join(tmp, 'dmg')
     fs.mkdirSync(outDir, { recursive: true })
     spawnMock.mockImplementation(((cmd: string, args: string[]) => {
@@ -96,26 +96,26 @@ describe('resolveBundle', () => {
     expect(fs.existsSync(path.join(outDir, '.mnt'))).toBe(false)
   })
 
-  it('lanza error si no se puede montar el .dmg', () => {
-    const outDir = path.join(tmp, 'dmg-fallo')
+  it('throws when the .dmg cannot be mounted', () => {
+    const outDir = path.join(tmp, 'dmg-mount-failure')
     fs.mkdirSync(outDir, { recursive: true })
     spawnMock.mockImplementation((cmd: string) => (cmd === 'hdiutil' ? ok({ status: 1 }) : ok()))
 
     expect(() =>
       resolveBundle(outDir, [{ format: 'dmg', path: path.join(outDir, 'demo.dmg') }]),
-    ).toThrow('no se pudo montar')
+    ).toThrow('could not mount')
   })
 
-  it('lanza error si el .dmg no contiene ningun .app', () => {
-    const outDir = path.join(tmp, 'dmg-vacio')
+  it('throws when the .dmg contains no .app', () => {
+    const outDir = path.join(tmp, 'dmg-empty')
     fs.mkdirSync(outDir, { recursive: true })
 
     expect(() =>
       resolveBundle(outDir, [{ format: 'dmg', path: path.join(outDir, 'demo.dmg') }]),
-    ).toThrow('no se encontro ningun .app dentro')
+    ).toThrow('no .app found inside')
   })
 
-  it('lanza error si falla la copia del .app fuera del .dmg', () => {
+  it('throws when copying the .app out of the .dmg fails', () => {
     const outDir = path.join(tmp, 'dmg-ditto')
     fs.mkdirSync(outDir, { recursive: true })
     spawnMock.mockImplementation(((cmd: string, args: string[]) => {
@@ -128,44 +128,42 @@ describe('resolveBundle', () => {
 
     expect(() =>
       resolveBundle(outDir, [{ format: 'dmg', path: path.join(outDir, 'demo.dmg') }]),
-    ).toThrow('no se pudo extraer')
+    ).toThrow('could not extract')
   })
 })
 
 describe('injectArgs', () => {
-  it('devuelve una lista vacia si la app no inyecta nada', () => {
+  it('returns an empty list when the app injects nothing', () => {
     expect(injectArgs(app)).toEqual([])
   })
 
-  it('resuelve cada nombre contra apps/inject/', () => {
+  it('resolves each name against apps/inject/', () => {
     const dir = path.join(tmp, 'inject')
     fs.mkdirSync(dir, { recursive: true })
-    fs.writeFileSync(path.join(dir, 'uno.js'), '')
-    fs.writeFileSync(path.join(dir, 'dos.js'), '')
+    fs.writeFileSync(path.join(dir, 'one.js'), '')
+    fs.writeFileSync(path.join(dir, 'two.js'), '')
 
-    expect(injectArgs({ ...app, inject: ['uno.js', 'dos.js'] }, dir)).toEqual([
+    expect(injectArgs({ ...app, inject: ['one.js', 'two.js'] }, dir)).toEqual([
       '--inject',
-      path.join(dir, 'uno.js'),
+      path.join(dir, 'one.js'),
       '--inject',
-      path.join(dir, 'dos.js'),
+      path.join(dir, 'two.js'),
     ])
   })
 
-  it('lanza error si el snippet no existe', () => {
-    expect(() => injectArgs({ ...app, inject: ['falta.js'] }, path.join(tmp, 'inject'))).toThrow(
-      'inyecta "falta.js" pero no existe',
+  it('throws when the snippet does not exist', () => {
+    expect(() => injectArgs({ ...app, inject: ['missing.js'] }, path.join(tmp, 'inject'))).toThrow(
+      'injects "missing.js" but',
     )
   })
 
-  it('lanza error si inject no es una lista de strings', () => {
-    expect(() => injectArgs({ ...app, inject: 'uno.js' })).toThrow(
-      'debe ser una lista de nombres de archivo',
-    )
+  it('throws when inject is not a list of strings', () => {
+    expect(() => injectArgs({ ...app, inject: 'one.js' })).toThrow('must be a list of file names')
   })
 })
 
 describe('buildApp', () => {
-  it('invoca a pake con la url, la config, la version y --json en dist/<id>', () => {
+  it('invokes pake with the url, the config, the version and --json in dist/<id>', () => {
     const bundlePath = path.join(distDir, 'demo', 'Demo.app')
     spawnMock.mockReturnValue(pakeSuccess([{ format: 'app', path: bundlePath }]))
 
@@ -183,7 +181,7 @@ describe('buildApp', () => {
     expect(options.cwd).toBe(path.join(distDir, 'demo'))
   })
 
-  it('usa 1.0.0 como version si la app no define appVersion', () => {
+  it('uses 1.0.0 as the version when the app defines no appVersion', () => {
     const bundlePath = path.join(distDir, 'demo', 'Demo.app')
     spawnMock.mockReturnValue(pakeSuccess([{ format: 'app', path: bundlePath }]))
 
@@ -193,10 +191,10 @@ describe('buildApp', () => {
     )
     const [, args] = spawnMock.mock.calls[0] as [string, string[]]
     expect(args).toContain('1.0.0')
-    expect(readState(stateFile).demo.version).toBe('1.0.0')
+    expect(readState(stateFile).demo?.version).toBe('1.0.0')
   })
 
-  it('guarda el estado y devuelve el bundle cuando el build va bien', () => {
+  it('saves the state and returns the bundle when the build succeeds', () => {
     const bundlePath = path.join(distDir, 'demo', 'Demo.app')
     spawnMock.mockReturnValue(pakeSuccess([{ format: 'app', path: bundlePath }]))
 
@@ -205,48 +203,46 @@ describe('buildApp', () => {
     expect(readState(stateFile).demo).toMatchObject({ bundle: 'Demo.app', version: '2.0.0' })
   })
 
-  it('lanza error si pake devuelve ok:false con codigo y pista', () => {
+  it('throws when pake returns ok:false with a code and a hint', () => {
     spawnMock.mockReturnValue(
       ok({
         stdout: JSON.stringify({
-          error: { code: 'INVALID_URL', hint: 'revisa la url', message: 'url mala' },
+          error: { code: 'INVALID_URL', hint: 'check the url', message: 'bad url' },
           ok: false,
         }),
       }),
     )
     expect(() => buildApp(app, { distDir, log: silent, stateFile })).toThrow(
-      'fallo el build de "demo" [INVALID_URL]: url mala (revisa la url)',
+      'build of "demo" failed [INVALID_URL]: bad url (check the url)',
     )
   })
 
-  it('lanza error generico si pake devuelve ok:false sin detalle', () => {
+  it('throws a generic error when pake returns ok:false with no detail', () => {
     spawnMock.mockReturnValue(ok({ stdout: JSON.stringify({ ok: false }) }))
     expect(() => buildApp(app, { distDir, log: silent, stateFile })).toThrow(
-      'fallo el build de "demo" [UNEXPECTED]: desconocido',
+      'build of "demo" failed [UNEXPECTED]: unknown',
     )
   })
 
-  it('no guarda estado si el build falla', () => {
+  it('does not save state when the build fails', () => {
     spawnMock.mockReturnValue(ok({ stdout: JSON.stringify({ ok: false }) }))
     expect(() => buildApp(app, { distDir, log: silent, stateFile })).toThrow()
     expect(readState(stateFile)).toEqual({})
   })
 
-  it('lanza error si la salida de pake no es JSON', () => {
-    spawnMock.mockReturnValue(ok({ stdout: 'todo roto' }))
+  it('throws when the pake output is not JSON', () => {
+    spawnMock.mockReturnValue(ok({ stdout: 'everything broken' }))
     expect(() => buildApp(app, { distDir, log: silent, stateFile })).toThrow(
-      'salida inesperada de pake',
+      'unexpected pake output',
     )
   })
 
-  it('lanza error si no se puede ejecutar pake', () => {
+  it('throws when pake cannot be run', () => {
     spawnMock.mockReturnValue({ error: new Error('ENOENT'), status: null } as never)
-    expect(() => buildApp(app, { distDir, log: silent, stateFile })).toThrow(
-      'no se pudo ejecutar pake',
-    )
+    expect(() => buildApp(app, { distDir, log: silent, stateFile })).toThrow('could not run pake')
   })
 
-  it('pasa --debug a pake cuando debug=true', () => {
+  it('passes --debug to pake when debug=true', () => {
     const bundlePath = path.join(distDir, 'demo', 'Demo.app')
     spawnMock.mockReturnValue(pakeSuccess([{ format: 'app', path: bundlePath }]))
 
@@ -257,7 +253,7 @@ describe('buildApp', () => {
 })
 
 describe('installApp', () => {
-  it('reutiliza el build existente si coincide la version', () => {
+  it('reuses the existing build when the version matches', () => {
     const outDir = path.join(distDir, 'demo')
     fs.mkdirSync(path.join(outDir, 'Demo.app'), { recursive: true })
     fs.writeFileSync(
@@ -271,10 +267,10 @@ describe('installApp', () => {
     const commands = spawnMock.mock.calls.map(([cmd]) => cmd)
     expect(commands).not.toContain('pake')
     expect(commands).toContain('ditto')
-    expect(messages.at(-1)).toContain('instalada en')
+    expect(messages.at(-1)).toContain('installed at')
   })
 
-  it('compila antes de instalar si no hay build de la version actual', () => {
+  it('builds before installing when there is no build of the current version', () => {
     const bundlePath = path.join(distDir, 'demo', 'Demo.app')
     spawnMock.mockImplementation((cmd: string) =>
       cmd.endsWith('pake') ? pakeSuccess([{ format: 'app', path: bundlePath }]) : ok(),
@@ -282,11 +278,11 @@ describe('installApp', () => {
 
     const messages: string[] = []
     installApp(app, { applicationsDir, distDir, log: (msg) => messages.push(msg), stateFile })
-    expect(messages[0]).toContain('no hay build de la v2.0.0')
-    expect(messages.at(-1)).toContain('instalada en')
+    expect(messages[0]).toContain('no build for v2.0.0')
+    expect(messages.at(-1)).toContain('installed at')
   })
 
-  it('recompila si el bundle del estado ya no existe en disco', () => {
+  it('rebuilds when the bundle recorded in the state is gone from disk', () => {
     fs.writeFileSync(
       stateFile,
       JSON.stringify({ demo: { builtAt: 'x', bundle: 'Demo.app', version: '2.0.0' } }),
@@ -298,15 +294,15 @@ describe('installApp', () => {
 
     const messages: string[] = []
     installApp(app, { applicationsDir, distDir, log: (msg) => messages.push(msg), stateFile })
-    expect(messages[0]).toContain('no hay build de la v2.0.0')
+    expect(messages[0]).toContain('no build for v2.0.0')
   })
 
-  it('sustituye el .app anterior y quita la cuarentena', () => {
+  it('replaces the previous .app and clears the quarantine', () => {
     const outDir = path.join(distDir, 'demo')
     fs.mkdirSync(path.join(outDir, 'Demo.app'), { recursive: true })
     const target = path.join(applicationsDir, 'Demo.app')
     fs.mkdirSync(target, { recursive: true })
-    fs.writeFileSync(path.join(target, 'viejo'), 'version anterior')
+    fs.writeFileSync(path.join(target, 'old'), 'previous version')
     fs.writeFileSync(
       stateFile,
       JSON.stringify({ demo: { builtAt: 'x', bundle: 'Demo.app', version: '2.0.0' } }),
@@ -314,7 +310,7 @@ describe('installApp', () => {
 
     installApp(app, { applicationsDir, distDir, log: silent, stateFile })
 
-    expect(fs.existsSync(path.join(target, 'viejo'))).toBe(false)
+    expect(fs.existsSync(path.join(target, 'old'))).toBe(false)
     const commands = spawnMock.mock.calls.map(([cmd]) => cmd)
     expect(commands).not.toContain('pake')
     expect(commands).toContain('ditto')
@@ -326,7 +322,7 @@ describe('installApp', () => {
     expect(xattrArgs).toEqual(['-dr', 'com.apple.quarantine', target])
   })
 
-  it('lanza error si ditto falla al copiar a /Applications', () => {
+  it('throws when ditto fails copying to /Applications', () => {
     const outDir = path.join(distDir, 'demo')
     fs.mkdirSync(path.join(outDir, 'Demo.app'), { recursive: true })
     fs.writeFileSync(
@@ -336,13 +332,13 @@ describe('installApp', () => {
     spawnMock.mockImplementation((cmd: string) => (cmd === 'ditto' ? ok({ status: 1 }) : ok()))
 
     expect(() => installApp(app, { applicationsDir, distDir, log: silent, stateFile })).toThrow(
-      'no se pudo copiar',
+      'could not copy',
     )
   })
 })
 
 describe('uninstallApp', () => {
-  it('elimina el .app instalado usando el bundle del estado', () => {
+  it('removes the installed .app using the bundle from the state', () => {
     fs.mkdirSync(path.join(applicationsDir, 'Demo.app'), { recursive: true })
     fs.writeFileSync(
       stateFile,
@@ -352,21 +348,21 @@ describe('uninstallApp', () => {
     const messages: string[] = []
     uninstallApp(app, (msg) => messages.push(msg), { applicationsDir, stateFile })
     expect(fs.existsSync(path.join(applicationsDir, 'Demo.app'))).toBe(false)
-    expect(messages.at(-1)).toContain('eliminada')
+    expect(messages.at(-1)).toContain('removed')
   })
 
-  it('usa <Nombre>.app como destino si no hay estado del build', () => {
+  it('falls back to <Name>.app as the target when there is no build state', () => {
     fs.mkdirSync(path.join(applicationsDir, 'Demo.app'), { recursive: true })
 
     const messages: string[] = []
     uninstallApp(app, (msg) => messages.push(msg), { applicationsDir, stateFile })
     expect(fs.existsSync(path.join(applicationsDir, 'Demo.app'))).toBe(false)
-    expect(messages.at(-1)).toContain('eliminada')
+    expect(messages.at(-1)).toContain('removed')
   })
 
-  it('avisa si no hay nada instalado', () => {
+  it('warns when nothing is installed', () => {
     const messages: string[] = []
     uninstallApp(app, (msg) => messages.push(msg), { applicationsDir, stateFile })
-    expect(messages.at(-1)).toContain('no hay nada instalado')
+    expect(messages.at(-1)).toContain('nothing installed')
   })
 })

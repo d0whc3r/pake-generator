@@ -3,7 +3,7 @@ import { bumpAppVersion, parseIds, readApp } from '../lib/core'
 import { installApp } from '../lib/pake'
 
 export default class Update extends Command {
-  static description = 'bump + build + install en un solo paso'
+  static description = 'bump + build + install in a single step'
 
   static examples = [
     '<%= config.bin %> update telegram',
@@ -11,14 +11,14 @@ export default class Update extends Command {
   ]
 
   static args = {
-    apps: Args.string({ description: 'IDs separados por coma', required: true }),
+    apps: Args.string({ description: 'Comma-separated IDs', required: true }),
   }
 
   static flags = {
-    debug: Flags.boolean({ default: false, description: 'Build en modo debug con salida verbose' }),
+    debug: Flags.boolean({ default: false, description: 'Debug build with verbose output' }),
     release: Flags.string({
       default: 'patch',
-      description: 'patch | minor | major | version explicita x.y.z',
+      description: 'patch | minor | major | explicit x.y.z version',
     }),
   }
 
@@ -26,7 +26,7 @@ export default class Update extends Command {
     const { args, flags } = await this.parse(Update)
     const ids = parseIds(args.apps)
     if (ids.length === 0) {
-      this.error('indica al menos un id: update telegram,slack')
+      this.error('give at least one id: update telegram,slack')
     }
     for (const id of ids) {
       const app = bumpAppVersion(id, flags.release, (msg) => this.log(msg))

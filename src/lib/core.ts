@@ -4,27 +4,26 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /**
- * Raiz del repo. En dev este archivo vive en src/lib/ y en el build de tsdown
- * el codigo acaba en chunks dentro de dist-cli/, asi que subimos directorios
- * hasta encontrar el marcador del workspace en vez de usar una ruta fija.
+ * Repo root. In dev this file lives in src/lib/ and in the tsdown build the
+ * code ends up in chunks inside dist-cli/, so we walk up directories until we
+ * find the workspace marker instead of using a fixed path.
  */
 function findRoot(start: string): string {
   let dir = start
-  while (true) {
+  let parent = path.dirname(dir)
+  while (parent !== dir) {
     if (fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) {
       return dir
     }
-    const parent = path.dirname(dir)
-    if (parent === dir) {
-      return start
-    }
     dir = parent
+    parent = path.dirname(dir)
   }
+  return start
 }
 
 export const ROOT = findRoot(path.dirname(fileURLToPath(import.meta.url)))
 export const APPS_DIR = path.join(ROOT, 'apps')
-/** Snippets compartidos que las apps referencian por nombre en su campo `inject`. */
+/** Shared snippets that apps reference by name in their `inject` field. */
 export const INJECT_DIR = path.join(APPS_DIR, 'inject')
 export const DIST_DIR = path.join(ROOT, 'dist')
 export const STATE_FILE = path.join(DIST_DIR, 'state.json')
@@ -33,7 +32,7 @@ export const PAKE_SCHEMA =
   'https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json'
 export const PAKE_BIN = path.join(ROOT, 'node_modules', '.bin', 'pake')
 
-/** Config de Pake (schema de tw93/Pake) mas el campo propio appVersion. */
+/** Pake config (tw93/Pake schema) plus our own appVersion field. */
 export interface PakeConfig {
   $schema?: string
   appVersion?: string
@@ -53,10 +52,10 @@ export interface BuildState {
   builtAt: string
 }
 
-export type State = Record<string, BuildState>
+export type State = Record<string, BuildState | undefined>
 
 // ---------------------------------------------------------------------------
-// Registro de apps (apps/<id>.json)
+// App registry (apps/<id>.json)
 // ---------------------------------------------------------------------------
 
 export function appFile(id: string, dir: string = APPS_DIR): string {
@@ -78,10 +77,25 @@ export function readApp(id: string, dir: string = APPS_DIR): AppEntry {
   const file = appFile(id, dir)
   if (!fs.existsSync(file)) {
     throw new Error(
-      `no existe la app "${id}" en apps/ (usa \`pnpm pake list\` para ver las registradas)`,
+      `app "${id}" does not exist in apps/ (use \`pnpm pake list\` to see the registered ones)`,
     )
   }
-  return { id, ...(JSON.parse(fs.readFileSync(file, 'utf8')) as PakeConfig) }
+  const config: unknown = JSON.parse(fs.readFileSync(file, 'utf8'))
+  if (!isPakeConfig(config)) {
+    throw new Error(`app "${id}" is not a valid config (missing "url" or "name")`)
+  }
+  return { id, ...config }
+}
+
+function isPakeConfig(value: unknown): value is PakeConfig {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'url' in value &&
+    typeof value.url === 'string' &&
+    'name' in value &&
+    typeof value.name === 'string'
+  )
 }
 
 export function writeApp(app: AppEntry, dir: string = APPS_DIR): void {
@@ -96,12 +110,12 @@ export function selectApps(ids: string[], dir: string = APPS_DIR): AppEntry[] {
   }
   const all = listAppIds(dir)
   if (all.length === 0) {
-    throw new Error('no hay apps en apps/; anade una con `pnpm pake add <url> --name "Nombre"`')
+    throw new Error('no apps in apps/; add one with `pnpm pake add <url> --name "Name"`')
   }
   return all.map((id) => readApp(id, dir))
 }
 
-/** Lista de ids separados por coma (arg de oclif); vacio/undefined = todas. */
+/** Comma-separated list of ids (oclif arg); empty/undefined = all of them. */
 export function parseIds(arg: string | undefined): string[] {
   return (arg ?? '')
     .split(',')
@@ -110,14 +124,38 @@ export function parseIds(arg: string | undefined): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// Estado de builds (dist/state.json)
+// Build state (dist/state.json)
 // ---------------------------------------------------------------------------
 
 export function readState(file: string = STATE_FILE): State {
   if (!fs.existsSync(file)) {
     return {}
   }
-  return JSON.parse(fs.readFileSync(file, 'utf8')) as State
+  const state: unknown = JSON.parse(fs.readFileSync(file, 'utf8'))
+  if (!isState(state)) {
+    throw new Error(`the state in ${file} does not have the expected format`)
+  }
+  return state
+}
+
+function isBuildState(value: unknown): value is BuildState {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'version' in value &&
+    typeof value.version === 'string' &&
+    'bundle' in value &&
+    typeof value.bundle === 'string' &&
+    'builtAt' in value &&
+    typeof value.builtAt === 'string'
+  )
+}
+
+function isState(value: unknown): value is State {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+  return Object.values(value).every(isBuildState)
 }
 
 export function writeState(state: State, file: string = STATE_FILE): void {
@@ -126,7 +164,7 @@ export function writeState(state: State, file: string = STATE_FILE): void {
 }
 
 // ---------------------------------------------------------------------------
-// Utilidades
+// Utilities
 // ---------------------------------------------------------------------------
 
 export function slugify(text: string): string {
@@ -161,9 +199,7 @@ export function bumpVersion(version: string, release: string): string {
     case 'patch':
       return `${major}.${minor}.${patch + 1}`
     default:
-      throw new Error(
-        `release no valido: "${release}" (usa patch, minor, major o una version x.y.z)`,
-      )
+      throw new Error(`invalid release: "${release}" (use patch, minor, major or an x.y.z version)`)
   }
 }
 
@@ -181,11 +217,11 @@ export function bumpAppVersion(
   return app
 }
 
-/** Ejecuta un comando heredando stdio; devuelve si termino con exito. */
+/** Runs a command inheriting stdio; returns whether it succeeded. */
 export function run(cmd: string, args: string[], options: SpawnSyncOptions = {}): boolean {
   const result = spawnSync(cmd, args, { stdio: 'inherit', ...options })
   if (result.error) {
-    throw new Error(`no se pudo ejecutar "${cmd}": ${result.error.message}`)
+    throw new Error(`could not run "${cmd}": ${result.error.message}`)
   }
   return result.status === 0
 }

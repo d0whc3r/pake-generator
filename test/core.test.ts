@@ -19,30 +19,30 @@ import {
 } from '../src/lib/core'
 
 describe('slugify', () => {
-  it('pasa a minusculas y une con guiones', () => {
+  it('lowercases and joins with hyphens', () => {
     expect(slugify('Notion Calendar')).toBe('notion-calendar')
   })
 
-  it('elimina acentos y diacriticos', () => {
-    expect(slugify('Fígaro Niño')).toBe('figaro-nino')
+  it('strips accents and diacritics', () => {
+    expect(slugify('Café Naïve')).toBe('cafe-naive')
   })
 
-  it('quita caracteres no alfanumericos y guiones sobrantes', () => {
+  it('drops non-alphanumeric characters and leftover hyphens', () => {
     expect(slugify('  --WhatsApp Web!!  ')).toBe('whatsapp-web')
   })
 
-  it('devuelve cadena vacia si no hay nada aprovechable', () => {
+  it('returns an empty string when there is nothing usable', () => {
     expect(slugify('!!!')).toBe('')
   })
 })
 
 describe('isValidVersion', () => {
-  it('acepta versiones x.y.z', () => {
+  it('accepts x.y.z versions', () => {
     expect(isValidVersion('1.0.0')).toBe(true)
     expect(isValidVersion('0.12.34')).toBe(true)
   })
 
-  it('rechaza formatos incorrectos', () => {
+  it('rejects malformed versions', () => {
     expect(isValidVersion('1.0')).toBe(false)
     expect(isValidVersion('v1.0.0')).toBe(false)
     expect(isValidVersion('1.0.0-beta')).toBe(false)
@@ -50,65 +50,65 @@ describe('isValidVersion', () => {
 })
 
 describe('bumpVersion', () => {
-  it('sube patch, minor y major', () => {
+  it('bumps patch, minor and major', () => {
     expect(bumpVersion('1.2.3', 'patch')).toBe('1.2.4')
     expect(bumpVersion('1.2.3', 'minor')).toBe('1.3.0')
     expect(bumpVersion('1.2.3', 'major')).toBe('2.0.0')
   })
 
-  it('acepta una version explicita', () => {
+  it('accepts an explicit version', () => {
     expect(bumpVersion('1.2.3', '4.5.6')).toBe('4.5.6')
   })
 
-  it('lanza error con un release no valido', () => {
-    expect(() => bumpVersion('1.2.3', 'huge')).toThrow('release no valido')
+  it('throws on an invalid release', () => {
+    expect(() => bumpVersion('1.2.3', 'huge')).toThrow('invalid release')
   })
 })
 
 describe('parseIds', () => {
-  it('devuelve lista vacia sin argumento', () => {
+  it('returns an empty list without an argument', () => {
     expect(parseIds(undefined)).toEqual([])
     expect(parseIds('')).toEqual([])
   })
 
-  it('separa por comas y recorta espacios', () => {
+  it('splits on commas and trims whitespace', () => {
     expect(parseIds('telegram, slack ,,figma')).toEqual(['telegram', 'slack', 'figma'])
   })
 })
 
 describe('appVersion', () => {
-  it('usa 1.0.0 si no hay appVersion', () => {
-    expect(appVersion({ name: 'App', url: 'https://ejemplo.com' })).toBe('1.0.0')
+  it('falls back to 1.0.0 when there is no appVersion', () => {
+    expect(appVersion({ name: 'App', url: 'https://example.com' })).toBe('1.0.0')
   })
 
-  it('respeta la appVersion definida', () => {
-    expect(appVersion({ appVersion: '2.3.4', name: 'App', url: 'https://ejemplo.com' })).toBe(
+  it('honors the appVersion that is set', () => {
+    expect(appVersion({ appVersion: '2.3.4', name: 'App', url: 'https://example.com' })).toBe(
       '2.3.4',
     )
   })
 })
 
 describe('readApp', () => {
-  it('lanza error si la app no existe', () => {
-    expect(() => readApp('app-que-no-existe')).toThrow('no existe la app')
+  it('throws when the app does not exist', () => {
+    expect(() => readApp('app-that-does-not-exist')).toThrow('does not exist in apps/')
   })
 })
 
 describe('run', () => {
-  it('devuelve true si el comando termina con exito', () => {
+  it('returns true when the command succeeds', () => {
     expect(run('true', [])).toBe(true)
   })
 
-  it('devuelve false si el comando falla', () => {
+  it('returns false when the command fails', () => {
     expect(run('false', [])).toBe(false)
   })
 
-  it('lanza error si el comando no existe', () => {
-    expect(() => run('comando-que-no-existe-xyz', [])).toThrow('no se pudo ejecutar')
+  it('throws when the command does not exist', () => {
+    expect(() => run('command-that-does-not-exist-xyz', [])).toThrow('could not run')
   })
 })
 
-describe('registro de apps (fs)', () => {
+describe('app registry (fs)', () => {
   let dir: string
 
   beforeEach(() => {
@@ -119,7 +119,7 @@ describe('registro de apps (fs)', () => {
     fs.rmSync(dir, { force: true, recursive: true })
   })
 
-  it('writeApp + readApp hacen round-trip y no guardan el id en el JSON', () => {
+  it('writeApp + readApp round-trip and do not store the id in the JSON', () => {
     writeApp({ id: 'demo', name: 'Demo', url: 'https://demo.com', width: 1200 }, dir)
     const raw = JSON.parse(fs.readFileSync(path.join(dir, 'demo.json'), 'utf8'))
     expect(raw).toEqual({ name: 'Demo', url: 'https://demo.com', width: 1200 })
@@ -128,45 +128,45 @@ describe('registro de apps (fs)', () => {
     expect(app).toEqual({ id: 'demo', name: 'Demo', url: 'https://demo.com', width: 1200 })
   })
 
-  it('listAppIds devuelve ids ordenados e ignora archivos que no son JSON', () => {
+  it('listAppIds returns sorted ids and ignores non-JSON files', () => {
     writeApp({ id: 'slack', name: 'Slack', url: 'https://slack.com' }, dir)
     writeApp({ id: 'figma', name: 'Figma', url: 'https://figma.com' }, dir)
-    fs.writeFileSync(path.join(dir, 'notas.txt'), 'no es una app')
+    fs.writeFileSync(path.join(dir, 'notes.txt'), 'not an app')
     expect(listAppIds(dir)).toEqual(['figma', 'slack'])
   })
 
-  it('listAppIds devuelve lista vacia si el directorio no existe', () => {
-    expect(listAppIds(path.join(dir, 'no-existe'))).toEqual([])
+  it('listAppIds returns an empty list when the directory does not exist', () => {
+    expect(listAppIds(path.join(dir, 'missing'))).toEqual([])
   })
 
-  it('selectApps devuelve las apps pedidas por id', () => {
+  it('selectApps returns the apps requested by id', () => {
     writeApp({ id: 'slack', name: 'Slack', url: 'https://slack.com' }, dir)
     writeApp({ id: 'figma', name: 'Figma', url: 'https://figma.com' }, dir)
     expect(selectApps(['figma'], dir).map((app) => app.id)).toEqual(['figma'])
   })
 
-  it('selectApps sin ids devuelve todas', () => {
+  it('selectApps without ids returns all of them', () => {
     writeApp({ id: 'slack', name: 'Slack', url: 'https://slack.com' }, dir)
     writeApp({ id: 'figma', name: 'Figma', url: 'https://figma.com' }, dir)
     expect(selectApps([], dir).map((app) => app.id)).toEqual(['figma', 'slack'])
   })
 
-  it('selectApps sin ids lanza error si el registro esta vacio', () => {
-    expect(() => selectApps([], dir)).toThrow('no hay apps en apps/')
+  it('selectApps without ids throws when the registry is empty', () => {
+    expect(() => selectApps([], dir)).toThrow('no apps in apps/')
   })
 
-  it('selectApps propaga el error si un id no existe', () => {
+  it('selectApps propagates the error when an id does not exist', () => {
     writeApp({ id: 'slack', name: 'Slack', url: 'https://slack.com' }, dir)
-    expect(() => selectApps(['slack', 'fantasma'], dir)).toThrow('no existe la app "fantasma"')
+    expect(() => selectApps(['slack', 'ghost'], dir)).toThrow('app "ghost" does not exist')
   })
 
-  it('writeApp crea el directorio de destino si no existe', () => {
-    const nested = path.join(dir, 'nuevo', 'apps')
+  it('writeApp creates the target directory when it does not exist', () => {
+    const nested = path.join(dir, 'new', 'apps')
     writeApp({ id: 'demo', name: 'Demo', url: 'https://demo.com' }, nested)
     expect(fs.existsSync(path.join(nested, 'demo.json'))).toBe(true)
   })
 
-  it('bumpAppVersion actualiza el JSON y lo registra en el log', () => {
+  it('bumpAppVersion updates the JSON and logs it', () => {
     writeApp({ appVersion: '1.2.3', id: 'demo', name: 'Demo', url: 'https://demo.com' }, dir)
     const messages: string[] = []
     const app = bumpAppVersion('demo', 'minor', (msg) => messages.push(msg), dir)
@@ -175,14 +175,14 @@ describe('registro de apps (fs)', () => {
     expect(messages).toEqual(['OK demo: v1.2.3 -> v1.3.0'])
   })
 
-  it('bumpAppVersion acepta una version explicita', () => {
+  it('bumpAppVersion accepts an explicit version', () => {
     writeApp({ appVersion: '1.2.3', id: 'demo', name: 'Demo', url: 'https://demo.com' }, dir)
     const app = bumpAppVersion('demo', '3.0.0', () => {}, dir)
     expect(app.appVersion).toBe('3.0.0')
   })
 })
 
-describe('estado de builds (fs)', () => {
+describe('build state (fs)', () => {
   let file: string
 
   beforeEach(() => {
@@ -193,11 +193,11 @@ describe('estado de builds (fs)', () => {
     fs.rmSync(path.dirname(file), { force: true, recursive: true })
   })
 
-  it('readState devuelve objeto vacio si no existe el archivo', () => {
+  it('readState returns an empty object when the file does not exist', () => {
     expect(readState(file)).toEqual({})
   })
 
-  it('writeState + readState hacen round-trip creando el directorio', () => {
+  it('writeState + readState round-trip creating the directory', () => {
     const state = {
       demo: { builtAt: '2026-08-03T00:00:00.000Z', bundle: 'Demo.app', version: '1.0.0' },
     }

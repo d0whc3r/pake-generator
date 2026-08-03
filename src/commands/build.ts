@@ -3,16 +3,16 @@ import { parseIds, selectApps } from '../lib/core'
 import { buildApp } from '../lib/pake'
 
 export default class Build extends Command {
-  static description = 'Compila apps a dist/<id>/ (todas si no se indican ids)'
+  static description = 'Build apps into dist/<id>/ (all of them if no ids are given)'
 
   static examples = ['<%= config.bin %> build', '<%= config.bin %> build telegram,slack']
 
   static args = {
-    apps: Args.string({ description: 'IDs separados por coma (vacio = todas)', required: false }),
+    apps: Args.string({ description: 'Comma-separated IDs (empty = all)', required: false }),
   }
 
   static flags = {
-    debug: Flags.boolean({ default: false, description: 'Build en modo debug con salida verbose' }),
+    debug: Flags.boolean({ default: false, description: 'Debug build with verbose output' }),
   }
 
   async run(): Promise<void> {

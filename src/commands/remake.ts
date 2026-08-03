@@ -12,7 +12,7 @@ import { buildApp, installApp, pakeCliVersion } from '../lib/pake'
 
 export default class Remake extends Command {
   static description =
-    'Actualiza pake-cli a la ultima version y regenera las apps (con bump de version y, opcionalmente, reinstalacion)'
+    'Update pake-cli to the latest version and rebuild the apps (with a version bump and, optionally, reinstall)'
 
   static examples = [
     '<%= config.bin %> remake --install',
@@ -21,23 +21,23 @@ export default class Remake extends Command {
   ]
 
   static args = {
-    apps: Args.string({ description: 'IDs separados por coma (vacio = todas)', required: false }),
+    apps: Args.string({ description: 'Comma-separated IDs (empty = all)', required: false }),
   }
 
   static flags = {
-    debug: Flags.boolean({ default: false, description: 'Build en modo debug con salida verbose' }),
+    debug: Flags.boolean({ default: false, description: 'Debug build with verbose output' }),
     install: Flags.boolean({
       default: false,
-      description: 'Reinstala los .app en /Applications tras compilar',
+      description: 'Reinstall the .app bundles into /Applications after building',
     }),
-    'no-bump': Flags.boolean({ default: false, description: 'No subir appVersion de las apps' }),
+    'no-bump': Flags.boolean({ default: false, description: "Do not bump the apps' appVersion" }),
     'no-upgrade': Flags.boolean({
       default: false,
-      description: 'No actualizar pake-cli, usar la version actual',
+      description: 'Do not update pake-cli, use the current version',
     }),
     release: Flags.string({
       default: 'patch',
-      description: 'Tipo de bump de appVersion: patch | minor | major',
+      description: 'appVersion bump type: patch | minor | major',
     }),
   }
 
@@ -46,14 +46,14 @@ export default class Remake extends Command {
 
     if (!flags['no-upgrade']) {
       const before = pakeCliVersion()
-      this.log('>> actualizando pake-cli a la ultima version...')
+      this.log('>> updating pake-cli to the latest version...')
       if (!run('pnpm', ['add', '-D', 'pake-cli@latest'], { cwd: ROOT })) {
-        this.error('no se pudo actualizar pake-cli')
+        this.error('could not update pake-cli')
       }
       const after = pakeCliVersion()
       this.log(
         before === after
-          ? `OK pake-cli ya estaba en v${after}`
+          ? `OK pake-cli was already at v${after}`
           : `OK pake-cli: v${before} -> v${after}`,
       )
     }
@@ -78,10 +78,10 @@ export default class Remake extends Command {
     }
 
     this.log(
-      `\nResumen: ${succeeded.length} OK${succeeded.length > 0 ? ` (${succeeded.join(', ')})` : ''}`,
+      `\nSummary: ${succeeded.length} OK${succeeded.length > 0 ? ` (${succeeded.join(', ')})` : ''}`,
     )
     if (failed.length > 0) {
-      this.error(`fallaron ${failed.length} app(s): ${failed.join(', ')}`, { exit: 1 })
+      this.error(`${failed.length} app(s) failed: ${failed.join(', ')}`, { exit: 1 })
     }
   }
 }

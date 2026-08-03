@@ -1,102 +1,103 @@
 # pake-generator
 
-Repo para generar, instalar y mantener apps de escritorio en macOS a partir de
-paginas web usando [Pake](https://github.com/tw93/pake) (Tauri + Rust).
+Repo to generate, install and maintain macOS desktop apps out of web pages
+using [Pake](https://github.com/tw93/pake) (Tauri + Rust).
 
-## Requisitos
+## Requirements
 
-- macOS con Xcode Command Line Tools
-- Node.js >= 24 y pnpm
-- Rust (`rustup` o `brew install rust`)
-- Las dependencias del repo: `pnpm install` (incluye `pake-cli` fijado en `package.json`)
+- macOS with Xcode Command Line Tools
+- Node.js >= 24 and pnpm
+- Rust (`rustup` or `brew install rust`)
+- The repo dependencies: `pnpm install` (includes `pake-cli` pinned in `package.json`)
 
-## Como funciona
+## How it works
 
-Cada app es un archivo `apps/<id>.json` con el formato de config de Pake
+Each app is an `apps/<id>.json` file in the Pake config format
 ([schema](https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json))
-mas un campo propio `appVersion` (semver) que gestiona este repo.
+plus an extra `appVersion` field (semver) managed by this repo.
 
-Los builds se generan en `dist/<id>/` (ignorado por git) y el estado del
-ultimo build queda en `dist/state.json`.
+Builds are generated in `dist/<id>/` (git-ignored) and the state of the last
+build is kept in `dist/state.json`.
 
-### Snippets inyectados
+### Injected snippets
 
-`apps/inject/` guarda los JS/CSS que se inyectan en la pagina, compartidos entre
-apps. Una app los usa nombrandolos en su campo `inject`:
+`apps/inject/` holds the JS/CSS injected into the page, shared across apps. An
+app uses them by naming them in its `inject` field:
 
 ```json
 "inject": ["popup-to-redirect.js"]
 ```
 
-Los nombres se resuelven contra `apps/inject/` y se pasan a pake por flag, no en
-la config: pake resuelve las rutas relativas de la config contra su cwd, que
-durante el build es `dist/<id>/`.
+The names are resolved against `apps/inject/` and passed to pake as flags, not
+in the config: pake resolves the config's relative paths against its cwd, which
+during the build is `dist/<id>/`.
 
-## Uso diario
+## Daily usage
 
 ```sh
-pnpm pake list                    # ver apps registradas, version y ultimo build
-pnpm pake install telegram        # compila (si hace falta) e instala en /Applications
-pnpm pake install                 # instala todas
-pnpm pake update telegram         # sube appVersion (patch), recompila e instala
+pnpm pake list                    # see registered apps, version and last build
+pnpm pake install telegram        # build (if needed) and install into /Applications
+pnpm pake install                 # install all of them
+pnpm pake update telegram         # bump appVersion (patch), rebuild and install
 pnpm pake update slack --release minor
-pnpm pake uninstall telegram      # quita el .app de /Applications
+pnpm pake uninstall telegram      # remove the .app from /Applications
 ```
 
-## Anadir una app nueva
+## Adding a new app
 
 ```sh
 pnpm pake add https://web.whatsapp.com --name "WhatsApp" \
   --set width=1200 --set height=800 --set hideTitleBar=true
 ```
 
-Esto crea `apps/whatsapp.json`. Edita el archivo para ajustar cualquier opcion
-del schema de Pake (`safeDomain`, `inject`, `showSystemTray`, etc.) y luego:
+This creates `apps/whatsapp.json`. Edit the file to tweak any option from the
+Pake schema (`safeDomain`, `inject`, `showSystemTray`, etc.) and then:
 
 ```sh
 pnpm pake install whatsapp
 ```
 
-## Gestion de versiones
+## Version management
 
-La version visible de la app (About, Finder, CFBundleVersion) sale del campo
-`appVersion` de cada `apps/<id>.json`:
+The version visible in the app (About, Finder, CFBundleVersion) comes from the
+`appVersion` field of each `apps/<id>.json`:
 
 ```sh
 pnpm pake bump telegram           # 1.0.0 -> 1.0.1 (patch)
 pnpm pake bump telegram minor     # 1.0.1 -> 1.1.0
-pnpm pake bump telegram 2.0.0     # version explicita
+pnpm pake bump telegram 2.0.0     # explicit version
 ```
 
-`pnpm pake update <id>` equivale a `bump` + `build` + `install`.
+`pnpm pake update <id>` is equivalent to `bump` + `build` + `install`.
 
-El script `install` solo recompila si la version del build en `dist/` no
-coincide con `appVersion`; si ya hay un build de esa version, reutiliza el
-bundle y solo copia a `/Applications`.
+The `install` script only rebuilds when the version of the build in `dist/`
+does not match `appVersion`; if a build of that version already exists, it
+reuses the bundle and only copies it to `/Applications`.
 
-## Comandos
+## Commands
 
-| Comando                                            | Descripcion                                      |
-| -------------------------------------------------- | ------------------------------------------------ |
-| `pnpm pake list`                                   | Lista apps, version y ultimo build               |
-| `pnpm pake add <url> --name "N" [--set k=v]`       | Registra una app nueva                           |
-| `pnpm pake remove <id> [--uninstall]`              | Elimina la app del registro (y de /Applications) |
-| `pnpm pake build [id...] [--debug]`                | Compila a `dist/<id>/` (todas si no hay id)      |
-| `pnpm pake install [id...]`                        | Build si hace falta + copia a /Applications      |
-| `pnpm pake uninstall <id...>`                      | Elimina el .app de /Applications                 |
-| `pnpm pake bump <id> [patch\|minor\|major\|x.y.z]` | Sube `appVersion`                                |
-| `pnpm pake update <id...> [--release r]`           | bump + build + install                           |
-| `pnpm pake help`                                   | Ayuda                                            |
+| Command                                            | Description                                        |
+| -------------------------------------------------- | -------------------------------------------------- |
+| `pnpm pake list`                                   | List apps, version and last build                  |
+| `pnpm pake add <url> --name "N" [--set k=v]`       | Register a new app                                 |
+| `pnpm pake remove <id> [--uninstall]`              | Remove the app from the registry (+ /Applications) |
+| `pnpm pake build [id...] [--debug]`                | Build into `dist/<id>/` (all if no id is given)    |
+| `pnpm pake install [id...]`                        | Build if needed + copy to /Applications            |
+| `pnpm pake uninstall <id...>`                      | Remove the .app from /Applications                 |
+| `pnpm pake bump <id> [patch\|minor\|major\|x.y.z]` | Bump `appVersion`                                  |
+| `pnpm pake update <id...> [--release r]`           | bump + build + install                             |
+| `pnpm pake help`                                   | Help                                               |
 
-## Notas
+## Notes
 
-- El primer build de Pake es lento: descarga su plantilla de Tauri y compila
-  las dependencias de Rust. Los siguientes son mucho mas rapidos.
-- Con `"targets": "apple"` Pake genera un `.dmg`; el script lo monta, extrae
-  el `.app` a `dist/<id>/` y lo instala desde ahi.
-- Los `.app` se instalan con firma ad-hoc (como cualquier build local de
-  Tauri); al ser compilados en tu maquina no llevan cuarentena de Gatekeeper.
-- No uses `pnpm install <app>`: `install` es el comando de pnpm. Siempre
+- The first Pake build is slow: it downloads its Tauri template and compiles
+  the Rust dependencies. The following ones are much faster.
+- With `"targets": "apple"` Pake produces a `.dmg`; the script mounts it,
+  extracts the `.app` into `dist/<id>/` and installs it from there.
+- The `.app` bundles are installed with an ad-hoc signature (like any local
+  Tauri build); since they are compiled on your machine they carry no
+  Gatekeeper quarantine.
+- Do not use `pnpm install <app>`: `install` is pnpm's own command. Always
   `pnpm pake install <app>`.
-- El aviso `objc[...] GNotificationCenterDelegate is implemented in both...`
-  al compilar es inofensivo (viene de libvips/sharp, dependencia de Pake).
+- The `objc[...] GNotificationCenterDelegate is implemented in both...` warning
+  during the build is harmless (it comes from libvips/sharp, a Pake dependency).

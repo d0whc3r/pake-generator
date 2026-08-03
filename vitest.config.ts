@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     coverage: {
-      // Solo importa la cobertura del codigo fuente, no de los propios tests.
+      // Only source coverage matters, not the tests' own coverage.
       include: ['src/**/*.ts'],
       provider: 'v8',
       reporter: ['text'],

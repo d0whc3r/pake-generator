@@ -7,9 +7,9 @@ import Remake from '../src/commands/remake'
 import { run } from '../src/lib/core'
 import { buildApp, installApp, pakeCliVersion } from '../src/lib/pake'
 
-// Misma estrategia que en commands.test.ts: registro temporal y capa de pake
-// mockeada. Ademas `run` se mockea para que el "pnpm add pake-cli@latest"
-// nunca se ejecute de verdad.
+// Same strategy as commands.test.ts: a temporary registry and a mocked pake
+// layer. On top of that, `run` is mocked so the "pnpm add pake-cli@latest"
+// never actually runs.
 const holder = vi.hoisted(() => ({ apps: '', state: '' }))
 
 vi.mock('../src/lib/core', async (importActual) => {
@@ -92,7 +92,7 @@ function seededVersion(id: string): string {
 }
 
 describe('remake', () => {
-  it('actualiza pake-cli, hace bump y compila todas las apps', async () => {
+  it('updates pake-cli, bumps and builds every app', async () => {
     seedApp('slack')
     seedApp('figma')
     versionMock.mockReturnValueOnce('3.0.0').mockReturnValue('3.1.0')
@@ -108,51 +108,51 @@ describe('remake', () => {
     expect(buildMock.mock.calls.map(([app]) => app.id)).toEqual(['figma', 'slack'])
     expect(installMock).not.toHaveBeenCalled()
     expect(seededVersion('slack')).toBe('1.0.1')
-    expect(logs.at(-1)).toBe('\nResumen: 2 OK (figma, slack)')
+    expect(logs.at(-1)).toBe('\nSummary: 2 OK (figma, slack)')
   })
 
-  it('detecta cuando pake-cli ya estaba en la ultima version', async () => {
+  it('detects when pake-cli was already on the latest version', async () => {
     seedApp('slack')
     const { logs } = await runRemake(['slack'])
-    expect(logs).toContain('OK pake-cli ya estaba en v3.0.0')
+    expect(logs).toContain('OK pake-cli was already at v3.0.0')
   })
 
-  it('con --no-upgrade no ejecuta pnpm', async () => {
+  it('with --no-upgrade it does not run pnpm', async () => {
     seedApp('slack')
     await runRemake(['slack', '--no-upgrade'])
     expect(runMock).not.toHaveBeenCalled()
     expect(buildMock).toHaveBeenCalledTimes(1)
   })
 
-  it('falla si no se puede actualizar pake-cli y no toca las apps', async () => {
+  it('fails when pake-cli cannot be updated and leaves the apps untouched', async () => {
     seedApp('slack')
     runMock.mockReturnValue(false)
-    await expect(runRemake(['slack'])).rejects.toThrow('no se pudo actualizar pake-cli')
+    await expect(runRemake(['slack'])).rejects.toThrow('could not update pake-cli')
     expect(buildMock).not.toHaveBeenCalled()
     expect(seededVersion('slack')).toBe('1.0.0')
   })
 
-  it('con --no-bump compila sin tocar la version', async () => {
+  it('with --no-bump it builds without touching the version', async () => {
     seedApp('slack')
     await runRemake(['slack', '--no-upgrade', '--no-bump'])
     expect(buildMock).toHaveBeenCalledTimes(1)
     expect(seededVersion('slack')).toBe('1.0.0')
   })
 
-  it('con --install instala en vez de solo compilar', async () => {
+  it('with --install it installs instead of only building', async () => {
     seedApp('slack')
     await runRemake(['slack', '--no-upgrade', '--install'])
     expect(installMock).toHaveBeenCalledTimes(1)
     expect(buildMock).not.toHaveBeenCalled()
   })
 
-  it('respeta --release para el bump', async () => {
+  it('honors --release for the bump', async () => {
     seedApp('slack', '1.2.3')
     await runRemake(['slack', '--no-upgrade', '--release', 'minor'])
     expect(seededVersion('slack')).toBe('1.3.0')
   })
 
-  it('continua con el resto si una app falla y resume los fallos', async () => {
+  it('carries on with the rest when one app fails and sums up the failures', async () => {
     seedApp('slack')
     seedApp('figma')
     buildMock.mockImplementation((app) => {
@@ -167,9 +167,9 @@ describe('remake', () => {
     )) as Error & {
       captured: Captured
     }
-    expect(failure.message).toContain('fallaron 1 app(s): slack')
+    expect(failure.message).toContain('1 app(s) failed: slack')
     expect(failure.captured.warns).toEqual(['slack: boom'])
-    expect(failure.captured.logs).toContain('\nResumen: 1 OK (figma)')
+    expect(failure.captured.logs).toContain('\nSummary: 1 OK (figma)')
     expect(buildMock).toHaveBeenCalledTimes(2)
   })
 })

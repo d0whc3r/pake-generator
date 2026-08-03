@@ -2,7 +2,7 @@
   "name": "pake-generator",
   "version": "1.0.0",
   "private": true,
-  "description": "Registro y herramientas para generar, instalar y mantener apps de escritorio en macOS con Pake",
+  "description": "Registry and tooling to generate, install and maintain macOS desktop apps with Pake",
   "keywords": [
     "desktop-apps",
     "macos",
