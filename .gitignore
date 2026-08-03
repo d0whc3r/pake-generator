@@ -4,3 +4,4 @@ dist-cli/
 .DS_Store
 *.log
 .pnpm-store/
+coverage/

@@ -64,7 +64,7 @@ export default class Add extends Command {
   }
 }
 
-function parseValue(value: string): unknown {
+export function parseValue(value: string): unknown {
   if (value === 'true') {
     return true
   }

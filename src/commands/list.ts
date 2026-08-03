@@ -7,6 +7,7 @@ export default class List extends Command {
   static examples = ['<%= config.bin %> list']
 
   async run(): Promise<void> {
+    await this.parse(List)
     const ids = listAppIds()
     if (ids.length === 0) {
       this.log('No hay apps registradas. Anade una con:')

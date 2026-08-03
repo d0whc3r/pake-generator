@@ -11,6 +11,7 @@ import {
   readState,
   ROOT,
   run,
+  STATE_FILE,
   writeState,
 } from './core'
 
@@ -57,7 +58,7 @@ function extractFromDmg(dmgPath: string, outDir: string): string {
   }
 }
 
-function resolveBundle(outDir: string, outputs: { path: string; format: string }[]): string {
+export function resolveBundle(outDir: string, outputs: { path: string; format: string }[]): string {
   const direct = outputs.find((output) => output.path.endsWith('.app'))
   if (direct) {
     return direct.path
@@ -75,9 +76,17 @@ function resolveBundle(outDir: string, outputs: { path: string; format: string }
   throw new Error(`build terminado pero no se encontro ningun .app en ${outDir}`)
 }
 
-export function buildApp(app: AppEntry, { debug = false, log = console.log } = {}): string {
+export interface BuildOptions {
+  debug?: boolean
+  distDir?: string
+  log?: (msg: string) => void
+  stateFile?: string
+}
+
+export function buildApp(app: AppEntry, options: BuildOptions = {}): string {
+  const { debug = false, distDir = DIST_DIR, log = console.log, stateFile = STATE_FILE } = options
   const version = appVersion(app)
-  const outDir = path.join(DIST_DIR, app.id)
+  const outDir = path.join(distDir, app.id)
   fs.rmSync(outDir, { force: true, recursive: true })
   fs.mkdirSync(outDir, { recursive: true })
 
@@ -114,26 +123,30 @@ export function buildApp(app: AppEntry, { debug = false, log = console.log } = {
   }
 
   const bundle = resolveBundle(outDir, parsed.outputs ?? [])
-  const state = readState()
+  const state = readState(stateFile)
   state[app.id] = {
     builtAt: new Date().toISOString(),
     bundle: path.basename(bundle),
     version,
   }
-  writeState(state)
+  writeState(state, stateFile)
   log(`OK ${app.id} v${version} -> ${bundle}`)
   return bundle
 }
 
-export function installApp(
-  app: AppEntry,
-  options: { debug?: boolean; log?: (msg: string) => void } = {},
-): void {
+export interface InstallOptions extends BuildOptions {
+  applicationsDir?: string
+}
+
+export function installApp(app: AppEntry, options: InstallOptions = {}): void {
   const log = options.log ?? console.log
+  const applicationsDir = options.applicationsDir ?? APPLICATIONS_DIR
+  const distDir = options.distDir ?? DIST_DIR
+  const stateFile = options.stateFile ?? STATE_FILE
   const version = appVersion(app)
-  const state = readState()
+  const state = readState(stateFile)
   const built = state[app.id]
-  const outDir = path.join(DIST_DIR, app.id)
+  const outDir = path.join(distDir, app.id)
 
   let bundle: string | null = null
   if (built && built.version === version) {
@@ -144,10 +157,10 @@ export function installApp(
   }
   if (!bundle) {
     log(`>> ${app.id}: no hay build de la v${version}, compilando...`)
-    bundle = buildApp(app, { debug: options.debug, log })
+    bundle = buildApp(app, { debug: options.debug, distDir, log, stateFile })
   }
 
-  const target = path.join(APPLICATIONS_DIR, path.basename(bundle))
+  const target = path.join(applicationsDir, path.basename(bundle))
   fs.rmSync(target, { force: true, recursive: true })
   if (!run('ditto', [bundle, target])) {
     throw new Error(`no se pudo copiar ${bundle} a ${target}`)
@@ -157,10 +170,15 @@ export function installApp(
   log(`OK ${app.name} instalada en ${target}`)
 }
 
-export function uninstallApp(app: AppEntry, log: (msg: string) => void = console.log): void {
-  const state = readState()
+export function uninstallApp(
+  app: AppEntry,
+  log: (msg: string) => void = console.log,
+  options: { applicationsDir?: string; stateFile?: string } = {},
+): void {
+  const applicationsDir = options.applicationsDir ?? APPLICATIONS_DIR
+  const state = readState(options.stateFile ?? STATE_FILE)
   const bundleName = state[app.id]?.bundle ?? `${app.name}.app`
-  const target = path.join(APPLICATIONS_DIR, bundleName)
+  const target = path.join(applicationsDir, bundleName)
   if (!fs.existsSync(target)) {
     log(`-- ${app.id}: no hay nada instalado en ${target}`)
     return

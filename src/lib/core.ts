@@ -57,23 +57,23 @@ export type State = Record<string, BuildState>
 // Registro de apps (apps/<id>.json)
 // ---------------------------------------------------------------------------
 
-export function appFile(id: string): string {
-  return path.join(APPS_DIR, `${id}.json`)
+export function appFile(id: string, dir: string = APPS_DIR): string {
+  return path.join(dir, `${id}.json`)
 }
 
-export function listAppIds(): string[] {
-  if (!fs.existsSync(APPS_DIR)) {
+export function listAppIds(dir: string = APPS_DIR): string[] {
+  if (!fs.existsSync(dir)) {
     return []
   }
   return fs
-    .readdirSync(APPS_DIR)
+    .readdirSync(dir)
     .filter((entry) => entry.endsWith('.json'))
     .toSorted()
     .map((entry) => path.basename(entry, '.json'))
 }
 
-export function readApp(id: string): AppEntry {
-  const file = appFile(id)
+export function readApp(id: string, dir: string = APPS_DIR): AppEntry {
+  const file = appFile(id, dir)
   if (!fs.existsSync(file)) {
     throw new Error(
       `no existe la app "${id}" en apps/ (usa \`pnpm pake list\` para ver las registradas)`,
@@ -82,21 +82,21 @@ export function readApp(id: string): AppEntry {
   return { id, ...(JSON.parse(fs.readFileSync(file, 'utf8')) as PakeConfig) }
 }
 
-export function writeApp(app: AppEntry): void {
+export function writeApp(app: AppEntry, dir: string = APPS_DIR): void {
   const { id, ...config } = app
-  fs.mkdirSync(APPS_DIR, { recursive: true })
-  fs.writeFileSync(appFile(id), `${JSON.stringify(config, null, 2)}\n`)
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(appFile(id, dir), `${JSON.stringify(config, null, 2)}\n`)
 }
 
-export function selectApps(ids: string[]): AppEntry[] {
+export function selectApps(ids: string[], dir: string = APPS_DIR): AppEntry[] {
   if (ids.length > 0) {
-    return ids.map(readApp)
+    return ids.map((id) => readApp(id, dir))
   }
-  const all = listAppIds()
+  const all = listAppIds(dir)
   if (all.length === 0) {
     throw new Error('no hay apps en apps/; anade una con `pnpm pake add <url> --name "Nombre"`')
   }
-  return all.map(readApp)
+  return all.map((id) => readApp(id, dir))
 }
 
 /** Lista de ids separados por coma (arg de oclif); vacio/undefined = todas. */
@@ -111,16 +111,16 @@ export function parseIds(arg: string | undefined): string[] {
 // Estado de builds (dist/state.json)
 // ---------------------------------------------------------------------------
 
-export function readState(): State {
-  if (!fs.existsSync(STATE_FILE)) {
+export function readState(file: string = STATE_FILE): State {
+  if (!fs.existsSync(file)) {
     return {}
   }
-  return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')) as State
+  return JSON.parse(fs.readFileSync(file, 'utf8')) as State
 }
 
-export function writeState(state: State): void {
-  fs.mkdirSync(DIST_DIR, { recursive: true })
-  fs.writeFileSync(STATE_FILE, `${JSON.stringify(state, null, 2)}\n`)
+export function writeState(state: State, file: string = STATE_FILE): void {
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`)
 }
 
 // ---------------------------------------------------------------------------
@@ -165,11 +165,16 @@ export function bumpVersion(version: string, release: string): string {
   }
 }
 
-export function bumpAppVersion(id: string, release: string, log: (msg: string) => void): AppEntry {
-  const app = readApp(id)
+export function bumpAppVersion(
+  id: string,
+  release: string,
+  log: (msg: string) => void,
+  dir: string = APPS_DIR,
+): AppEntry {
+  const app = readApp(id, dir)
   const previous = appVersion(app)
   app.appVersion = bumpVersion(previous, release)
-  writeApp(app)
+  writeApp(app, dir)
   log(`OK ${id}: v${previous} -> v${app.appVersion}`)
   return app
 }

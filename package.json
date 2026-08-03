@@ -16,6 +16,7 @@
     "pake:built": "node dist-cli/cli.mjs",
     "build": "tsdown",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "type-check": "tsc --noEmit",
     "lint": "oxlint --no-error-on-unmatched-pattern",
     "lint:fix": "oxlint --no-error-on-unmatched-pattern --fix",
@@ -27,6 +28,7 @@
     "@oclif/core": "4.13.2",
     "@total-typescript/ts-reset": "0.6.1",
     "@types/node": "26.1.2",
+    "@vitest/coverage-v8": "4.1.10",
     "oclif": "4.23.29",
     "oxfmt": "0.61.0",
     "oxlint": "1.76.0",
@@ -39,7 +41,7 @@
   },
   "oclif": {
     "bin": "pake",
-    "commands": "./dist-cli/commands",
+    "commands": "./src/commands",
     "dirname": "pake-apps",
     "topicSeparator": " "
   },

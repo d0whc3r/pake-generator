@@ -1,13 +1,21 @@
-import { describe, expect, it } from 'vitest'
-
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   appVersion,
+  bumpAppVersion,
   bumpVersion,
   isValidVersion,
+  listAppIds,
   parseIds,
   readApp,
+  readState,
   run,
+  selectApps,
   slugify,
+  writeApp,
+  writeState,
 } from '../src/lib/core'
 
 describe('slugify', () => {
@@ -89,5 +97,90 @@ describe('run', () => {
 
   it('devuelve false si el comando falla', () => {
     expect(run('false', [])).toBe(false)
+  })
+
+  it('lanza error si el comando no existe', () => {
+    expect(() => run('comando-que-no-existe-xyz', [])).toThrow('no se pudo ejecutar')
+  })
+})
+
+describe('registro de apps (fs)', () => {
+  let dir: string
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pake-apps-'))
+  })
+
+  afterEach(() => {
+    fs.rmSync(dir, { force: true, recursive: true })
+  })
+
+  it('writeApp + readApp hacen round-trip y no guardan el id en el JSON', () => {
+    writeApp({ id: 'demo', name: 'Demo', url: 'https://demo.com', width: 1200 }, dir)
+    const raw = JSON.parse(fs.readFileSync(path.join(dir, 'demo.json'), 'utf8'))
+    expect(raw).toEqual({ name: 'Demo', url: 'https://demo.com', width: 1200 })
+
+    const app = readApp('demo', dir)
+    expect(app).toEqual({ id: 'demo', name: 'Demo', url: 'https://demo.com', width: 1200 })
+  })
+
+  it('listAppIds devuelve ids ordenados e ignora archivos que no son JSON', () => {
+    writeApp({ id: 'slack', name: 'Slack', url: 'https://slack.com' }, dir)
+    writeApp({ id: 'figma', name: 'Figma', url: 'https://figma.com' }, dir)
+    fs.writeFileSync(path.join(dir, 'notas.txt'), 'no es una app')
+    expect(listAppIds(dir)).toEqual(['figma', 'slack'])
+  })
+
+  it('listAppIds devuelve lista vacia si el directorio no existe', () => {
+    expect(listAppIds(path.join(dir, 'no-existe'))).toEqual([])
+  })
+
+  it('selectApps devuelve las apps pedidas por id', () => {
+    writeApp({ id: 'slack', name: 'Slack', url: 'https://slack.com' }, dir)
+    writeApp({ id: 'figma', name: 'Figma', url: 'https://figma.com' }, dir)
+    expect(selectApps(['figma'], dir).map((app) => app.id)).toEqual(['figma'])
+  })
+
+  it('selectApps sin ids devuelve todas', () => {
+    writeApp({ id: 'slack', name: 'Slack', url: 'https://slack.com' }, dir)
+    writeApp({ id: 'figma', name: 'Figma', url: 'https://figma.com' }, dir)
+    expect(selectApps([], dir).map((app) => app.id)).toEqual(['figma', 'slack'])
+  })
+
+  it('selectApps sin ids lanza error si el registro esta vacio', () => {
+    expect(() => selectApps([], dir)).toThrow('no hay apps en apps/')
+  })
+
+  it('bumpAppVersion actualiza el JSON y lo registra en el log', () => {
+    writeApp({ appVersion: '1.2.3', id: 'demo', name: 'Demo', url: 'https://demo.com' }, dir)
+    const messages: string[] = []
+    const app = bumpAppVersion('demo', 'minor', (msg) => messages.push(msg), dir)
+    expect(app.appVersion).toBe('1.3.0')
+    expect(readApp('demo', dir).appVersion).toBe('1.3.0')
+    expect(messages).toEqual(['OK demo: v1.2.3 -> v1.3.0'])
+  })
+})
+
+describe('estado de builds (fs)', () => {
+  let file: string
+
+  beforeEach(() => {
+    file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'pake-state-')), 'state.json')
+  })
+
+  afterEach(() => {
+    fs.rmSync(path.dirname(file), { force: true, recursive: true })
+  })
+
+  it('readState devuelve objeto vacio si no existe el archivo', () => {
+    expect(readState(file)).toEqual({})
+  })
+
+  it('writeState + readState hacen round-trip creando el directorio', () => {
+    const state = {
+      demo: { builtAt: '2026-08-03T00:00:00.000Z', bundle: 'Demo.app', version: '1.0.0' },
+    }
+    writeState(state, file)
+    expect(readState(file)).toEqual(state)
   })
 })
