@@ -1,8 +1,75 @@
 diff --git a/src-tauri/src/app/window.rs b/src-tauri/src/app/window.rs
-index 4efcb937e0cbe552740bce0836519f3ef55b3212..64d72de655b9eeceeb39190667257ffbd4dac70b 100644
+index 4efcb937e0cbe552740bce0836519f3ef55b3212..9d35fa4758492838ff9c520fa31a2dc24a47ea52 100644
 --- a/src-tauri/src/app/window.rs
 +++ b/src-tauri/src/app/window.rs
-@@ -157,6 +157,7 @@ struct WindowBuildOptions<'a> {
+@@ -150,6 +150,66 @@ pub fn reapply_window_icon(window: &WebviewWindow) {
+ #[cfg(not(target_os = "windows"))]
+ pub fn reapply_window_icon(_window: &WebviewWindow) {}
+ 
++// Popups built by wry from the WKWebViewConfiguration WebKit hands over never
++// get a WKUIDelegate, and a webview without one falls back to WebKit's own
++// microphone/camera prompt on every load (a Slack huddle window asks each time
++// it opens). Hand those popups the delegate of the webview that already has
++// one: wry's, which grants capture without asking. Runs on the main queue so
++// the popup exists by the time it looks for it.
++#[cfg(target_os = "macos")]
++fn share_ui_delegate_with_popups() {
++    use objc2::runtime::AnyObject;
++    use objc2::{class, msg_send, sel};
++
++    unsafe fn collect_webviews(view: *mut AnyObject, found: &mut Vec<*mut AnyObject>) {
++        if view.is_null() {
++            return;
++        }
++        let is_webview: bool = msg_send![view, respondsToSelector: sel!(setUIDelegate:)];
++        if is_webview {
++            found.push(view);
++        }
++        let subviews: *mut AnyObject = msg_send![view, subviews];
++        let count: usize = msg_send![subviews, count];
++        for index in 0..count {
++            let subview: *mut AnyObject = msg_send![subviews, objectAtIndex: index];
++            collect_webviews(subview, found);
++        }
++    }
++
++    Queue::main().exec_async(|| unsafe {
++        let ns_app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
++        let windows: *mut AnyObject = msg_send![ns_app, windows];
++        let window_count: usize = msg_send![windows, count];
++
++        let mut webviews = Vec::new();
++        for index in 0..window_count {
++            let window: *mut AnyObject = msg_send![windows, objectAtIndex: index];
++            let content_view: *mut AnyObject = msg_send![window, contentView];
++            collect_webviews(content_view, &mut webviews);
++        }
++
++        let mut delegate: *mut AnyObject = std::ptr::null_mut();
++        for webview in &webviews {
++            let current: *mut AnyObject = msg_send![*webview, UIDelegate];
++            if !current.is_null() {
++                delegate = current;
++                break;
++            }
++        }
++        if delegate.is_null() {
++            return;
++        }
++
++        for webview in webviews {
++            let current: *mut AnyObject = msg_send![webview, UIDelegate];
++            if current.is_null() {
++                let _: () = msg_send![webview, setUIDelegate: delegate];
++            }
++        }
++    });
++}
++
+ struct WindowBuildOptions<'a> {
+     label: &'a str,
+     url: WebviewUrl,
+@@ -157,6 +217,7 @@ struct WindowBuildOptions<'a> {
      new_window_features: Option<NewWindowFeatures>,
  }
  
@@ -10,7 +77,7 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..64d72de655b9eeceeb39190667257ffb
  fn open_requested_window(
      app: &AppHandle,
      config: &PakeConfig,
-@@ -371,24 +372,15 @@ fn build_window(
+@@ -371,23 +432,18 @@ fn build_window(
      }
  
      if window_config.new_window {
@@ -31,7 +98,6 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..64d72de655b9eeceeb39190667257ffb
 -                    NewWindowResponse::Deny
 -                }
 -            }
--        });
 +        // Building the popup as a Tauri window crashes on macOS 26 either way:
 +        // reusing the opener WKWebViewConfiguration registers its script message
 +        // handlers twice, and creating our own makes WebKit abort inside
@@ -40,10 +106,13 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..64d72de655b9eeceeb39190667257ffb
 +        // of wry's WKUIDelegate). Allow lets wry build the window from that
 +        // configuration, which is also what gives the page a real window.opener
 +        // and a resizable window sized from the window features.
-+        window_builder = window_builder.on_new_window(|_target_url, _features| NewWindowResponse::Allow);
++        window_builder = window_builder.on_new_window(|_target_url, _features| {
++            #[cfg(target_os = "macos")]
++            share_ui_delegate_with_popups();
++            NewWindowResponse::Allow
+         });
      }
  
-     // Add initialization scripts. Order matters: pakeConfig must land before
 diff --git a/src-tauri/src/inject/event.js b/src-tauri/src/inject/event.js
 index 8dc757b40964bdcea9bd6c007449785658331983..de27d32c1ae7dc90fb3e3d7fe662a5718d0f56eb 100644
 --- a/src-tauri/src/inject/event.js
