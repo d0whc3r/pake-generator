@@ -3,7 +3,26 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+/**
+ * Raiz del repo. En dev este archivo vive en src/lib/ y en el build de tsdown
+ * el codigo acaba en chunks dentro de dist-cli/, asi que subimos directorios
+ * hasta encontrar el marcador del workspace en vez de usar una ruta fija.
+ */
+function findRoot(start: string): string {
+  let dir = start
+  while (true) {
+    if (fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) {
+      return dir
+    }
+    const parent = path.dirname(dir)
+    if (parent === dir) {
+      return start
+    }
+    dir = parent
+  }
+}
+
+export const ROOT = findRoot(path.dirname(fileURLToPath(import.meta.url)))
 export const APPS_DIR = path.join(ROOT, 'apps')
 export const DIST_DIR = path.join(ROOT, 'dist')
 export const STATE_FILE = path.join(DIST_DIR, 'state.json')

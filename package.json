@@ -13,6 +13,9 @@
   "type": "module",
   "scripts": {
     "pake": "tsx src/cli.ts",
+    "pake:built": "node dist-cli/cli.mjs",
+    "build": "tsdown",
+    "test": "vitest run",
     "type-check": "tsc --noEmit",
     "lint": "oxlint --no-error-on-unmatched-pattern",
     "lint:fix": "oxlint --no-error-on-unmatched-pattern --fix",
@@ -29,12 +32,14 @@
     "oxlint": "1.76.0",
     "oxlint-tsgolint": "7.0.2001",
     "pake-cli": "3.15.5",
+    "tsdown": "0.22.14",
     "tsx": "4.23.5",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
   },
   "oclif": {
     "bin": "pake",
-    "commands": "./src/commands",
+    "commands": "./dist-cli/commands",
     "dirname": "pake-apps",
     "topicSeparator": " "
   },
