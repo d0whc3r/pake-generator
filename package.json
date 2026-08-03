@@ -5,10 +5,19 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "pake": "node scripts/pake.mjs"
+    "pake": "tsx src/cli.ts",
+    "type-check": "tsc --noEmit",
+    "lint": "oxlint --no-error-on-unmatched-pattern",
+    "lint:fix": "oxlint --no-error-on-unmatched-pattern --fix",
+    "format": "oxfmt --no-error-on-unmatched-pattern",
+    "format:check": "oxfmt --no-error-on-unmatched-pattern --check",
+    "format:fix": "pnpm lint:fix --fix-suggestions && pnpm format"
   },
-  "bin": {
-    "pake-apps": "scripts/pake.mjs"
+  "oclif": {
+    "bin": "pake",
+    "dirname": "pake-apps",
+    "commands": "./src/commands",
+    "topicSeparator": " "
   },
   "keywords": [
     "pake",
@@ -17,11 +26,20 @@
     "desktop-apps"
   ],
   "license": "MIT",
-  "packageManager": "pnpm@11.18.0",
+  "packageManager": "pnpm@10.26.2",
   "engines": {
     "node": ">=24"
   },
   "devDependencies": {
-    "pake-cli": "3.15.5"
+    "@oclif/core": "4.13.2",
+    "@total-typescript/ts-reset": "0.6.1",
+    "@types/node": "26.1.2",
+    "oclif": "4.23.29",
+    "oxfmt": "0.61.0",
+    "oxlint": "1.76.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "pake-cli": "3.15.5",
+    "tsx": "4.23.5",
+    "typescript": "7.0.2"
   }
 }

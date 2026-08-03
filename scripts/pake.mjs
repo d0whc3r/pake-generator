@@ -27,11 +27,11 @@ function appFile(id) {
 }
 
 function listAppFiles() {
-  if (!fs.existsSync(APPS_DIR)) return [];
+  if (!fs.existsSync(APPS_DIR)) {return [];}
   return fs
     .readdirSync(APPS_DIR)
     .filter((entry) => entry.endsWith('.json'))
-    .sort();
+    .toSorted();
 }
 
 function readApp(id) {
@@ -45,17 +45,17 @@ function readApp(id) {
 function writeApp(app) {
   const { id, ...config } = app;
   fs.mkdirSync(APPS_DIR, { recursive: true });
-  fs.writeFileSync(appFile(id), JSON.stringify(config, null, 2) + '\n');
+  fs.writeFileSync(appFile(id), `${JSON.stringify(config, null, 2)  }\n`);
 }
 
 function readState() {
-  if (!fs.existsSync(STATE_FILE)) return {};
+  if (!fs.existsSync(STATE_FILE)) {return {};}
   return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
 }
 
 function writeState(state) {
   fs.mkdirSync(DIST_DIR, { recursive: true });
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2) + '\n');
+  fs.writeFileSync(STATE_FILE, `${JSON.stringify(state, null, 2)  }\n`);
 }
 
 // ---------------------------------------------------------------------------
@@ -63,8 +63,7 @@ function writeState(state) {
 // ---------------------------------------------------------------------------
 
 function fail(message) {
-  console.error(`error: ${message}`);
-  process.exit(1);
+  throw new Error(message);
 }
 
 function slugify(text) {
@@ -83,7 +82,7 @@ function appVersion(app) {
 function selectApps(ids) {
   if (ids.length === 0) {
     const files = listAppFiles();
-    if (files.length === 0) fail('no hay apps en apps/; anade una con `pnpm pake add <url> --name "Nombre"`');
+    if (files.length === 0) {fail('no hay apps en apps/; anade una con `pnpm pake add <url> --name "Nombre"`');}
     return files.map((file) => readApp(path.basename(file, '.json')));
   }
   return ids.map(readApp);
@@ -116,13 +115,13 @@ function parseArgs(argv) {
       addFlag(arg.slice(2), true);
     }
   }
-  return { positional, flags };
+  return { flags, positional };
 }
 
 function parseSetValue(value) {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
+  if (value === 'true') {return true;}
+  if (value === 'false') {return false;}
+  if (/^-?\d+(\.\d+)?$/.test(value)) {return Number(value);}
   return value;
 }
 
@@ -131,7 +130,7 @@ function isValidVersion(version) {
 }
 
 function bumpVersion(version, release) {
-  if (isValidVersion(release)) return release;
+  if (isValidVersion(release)) {return release;}
   const [major, minor, patch] = version.split('.').map(Number);
   switch (release) {
     case 'major':
@@ -147,7 +146,7 @@ function bumpVersion(version, release) {
 
 function run(cmd, args, options = {}) {
   const result = spawnSync(cmd, args, { stdio: 'inherit', ...options });
-  if (result.error) fail(`no se pudo ejecutar "${cmd}": ${result.error.message}`);
+  if (result.error) {fail(`no se pudo ejecutar "${cmd}": ${result.error.message}`);}
   return result.status === 0;
 }
 
@@ -157,7 +156,7 @@ function run(cmd, args, options = {}) {
 
 function locateAppBundle(dir, appName) {
   const exact = path.join(dir, `${appName}.app`);
-  if (fs.existsSync(exact)) return exact;
+  if (fs.existsSync(exact)) {return exact;}
   const found = fs.readdirSync(dir).find((entry) => entry.endsWith('.app'));
   return found ? path.join(dir, found) : null;
 }
@@ -165,29 +164,29 @@ function locateAppBundle(dir, appName) {
 // Pake empaqueta en .dmg segun "targets"; extraemos el .app para instalarlo.
 function extractFromDmg(dmgPath, outDir) {
   const mountPoint = path.join(outDir, '.mnt');
-  fs.rmSync(mountPoint, { recursive: true, force: true });
+  fs.rmSync(mountPoint, { force: true, recursive: true });
   fs.mkdirSync(mountPoint, { recursive: true });
   if (!run('hdiutil', ['attach', dmgPath, '-nobrowse', '-readonly', '-mountpoint', mountPoint])) {
     fail(`no se pudo montar ${dmgPath}`);
   }
   try {
     const found = fs.readdirSync(mountPoint).find((entry) => entry.endsWith('.app'));
-    if (!found) fail(`no se encontro ningun .app dentro de ${dmgPath}`);
+    if (!found) {fail(`no se encontro ningun .app dentro de ${dmgPath}`);}
     const dest = path.join(outDir, found);
-    fs.rmSync(dest, { recursive: true, force: true });
+    fs.rmSync(dest, { force: true, recursive: true });
     if (!run('ditto', [path.join(mountPoint, found), dest])) {
       fail(`no se pudo extraer ${found} de ${dmgPath}`);
     }
     return dest;
   } finally {
     spawnSync('hdiutil', ['detach', mountPoint, '-quiet'], { stdio: 'ignore' });
-    fs.rmSync(mountPoint, { recursive: true, force: true });
+    fs.rmSync(mountPoint, { force: true, recursive: true });
   }
 }
 
 function locateOrExtractBundle(outDir, appName) {
   const bundle = locateAppBundle(outDir, appName);
-  if (bundle) return bundle;
+  if (bundle) {return bundle;}
   const dmg = fs.readdirSync(outDir).find((entry) => entry.endsWith('.dmg'));
   return dmg ? extractFromDmg(path.join(outDir, dmg), outDir) : null;
 }
@@ -195,24 +194,24 @@ function locateOrExtractBundle(outDir, appName) {
 function buildApp(app, { debug = false } = {}) {
   const version = appVersion(app);
   const outDir = path.join(DIST_DIR, app.id);
-  fs.rmSync(outDir, { recursive: true, force: true });
+  fs.rmSync(outDir, { force: true, recursive: true });
   fs.mkdirSync(outDir, { recursive: true });
 
   const args = [app.url, '--config', appFile(app.id), '--app-version', version];
-  if (debug) args.push('--debug');
+  if (debug) {args.push('--debug');}
   console.log(`\n>> ${app.id}: pake ${args.join(' ')}`);
   if (!run('pnpm', ['exec', 'pake', ...args], { cwd: outDir })) {
     fail(`fallo el build de "${app.id}"`);
   }
 
   const bundle = locateOrExtractBundle(outDir, app.name);
-  if (!bundle) fail(`build de "${app.id}" terminado pero no se encontro el .app en ${outDir}`);
+  if (!bundle) {fail(`build de "${app.id}" terminado pero no se encontro el .app en ${outDir}`);}
 
   const state = readState();
   state[app.id] = {
-    version,
-    bundle: path.basename(bundle),
     builtAt: new Date().toISOString(),
+    bundle: path.basename(bundle),
+    version,
   };
   writeState(state);
   console.log(`OK ${app.id} v${version} -> ${bundle}`);
@@ -232,8 +231,8 @@ function installApp(app, { debug = false } = {}) {
   }
 
   const target = path.join(APPLICATIONS_DIR, path.basename(bundle));
-  fs.rmSync(target, { recursive: true, force: true });
-  if (!run('ditto', [bundle, target])) fail(`no se pudo copiar ${bundle} a ${target}`);
+  fs.rmSync(target, { force: true, recursive: true });
+  if (!run('ditto', [bundle, target])) {fail(`no se pudo copiar ${bundle} a ${target}`);}
   // Por si acaso el bundle hereda atributos de cuarentena.
   spawnSync('xattr', ['-dr', 'com.apple.quarantine', target], { stdio: 'ignore' });
   console.log(`OK ${app.name} instalada en ${target}`);
@@ -247,7 +246,7 @@ function uninstallAppBundle(app) {
     console.log(`-- ${app.id}: no hay nada instalado en ${target}`);
     return;
   }
-  fs.rmSync(target, { recursive: true, force: true });
+  fs.rmSync(target, { force: true, recursive: true });
   console.log(`OK ${target} eliminada`);
 }
 
@@ -274,24 +273,24 @@ function cmdList() {
 function cmdAdd(argv) {
   const { positional, flags } = parseArgs(argv);
   const url = positional[0];
-  if (!url) fail('uso: pake add <url> --name "Nombre" [--id id] [--identifier id.bundle] [--set clave=valor ...]');
-  if (!flags.name) fail('falta --name "Nombre de la app"');
+  if (!url) {fail('uso: pake add <url> --name "Nombre" [--id id] [--identifier id.bundle] [--set clave=valor ...]');}
+  if (!flags.name) {fail('falta --name "Nombre de la app"');}
 
   const config = {
     $schema: PAKE_SCHEMA,
     appVersion: '1.0.0',
-    url,
-    name: String(flags.name),
     identifier: String(flags.identifier ?? `com.pake.${slugify(String(flags.name)).replace(/-/g, '')}`),
+    name: String(flags.name),
+    url,
   };
   for (const entry of [].concat(flags.set ?? [])) {
     const eq = String(entry).indexOf('=');
-    if (eq === -1) fail(`--set ${entry} no tiene formato clave=valor`);
+    if (eq === -1) {fail(`--set ${entry} no tiene formato clave=valor`);}
     config[String(entry).slice(0, eq)] = parseSetValue(String(entry).slice(eq + 1));
   }
 
   const id = flags.id ?? slugify(String(flags.name));
-  if (fs.existsSync(appFile(id))) fail(`ya existe la app "${id}" (${appFile(id)})`);
+  if (fs.existsSync(appFile(id))) {fail(`ya existe la app "${id}" (${appFile(id)})`);}
   writeApp({ id, ...config });
   console.log(`OK app "${config.name}" registrada como apps/${id}.json (v1.0.0)`);
   console.log(`   Siguiente paso: pnpm pake install ${id}`);
@@ -300,11 +299,11 @@ function cmdAdd(argv) {
 function cmdRemove(argv) {
   const { positional, flags } = parseArgs(argv);
   const id = positional[0];
-  if (!id) fail('uso: pake remove <id> [--uninstall]');
+  if (!id) {fail('uso: pake remove <id> [--uninstall]');}
   const app = readApp(id);
-  if (flags.uninstall) uninstallAppBundle(app);
+  if (flags.uninstall) {uninstallAppBundle(app);}
   fs.rmSync(appFile(id));
-  fs.rmSync(path.join(DIST_DIR, id), { recursive: true, force: true });
+  fs.rmSync(path.join(DIST_DIR, id), { force: true, recursive: true });
   const state = readState();
   delete state[id];
   writeState(state);
@@ -327,8 +326,8 @@ function cmdInstall(argv) {
 
 function cmdUninstall(argv) {
   const { positional } = parseArgs(argv);
-  if (positional.length === 0) fail('uso: pake uninstall <id> [id...]');
-  for (const id of positional) uninstallAppBundle(readApp(id));
+  if (positional.length === 0) {fail('uso: pake uninstall <id> [id...]');}
+  for (const id of positional) {uninstallAppBundle(readApp(id));}
 }
 
 function bumpInRegistry(id, release) {
@@ -343,13 +342,13 @@ function bumpInRegistry(id, release) {
 function cmdBump(argv) {
   const { positional } = parseArgs(argv);
   const [id, release = 'patch'] = positional;
-  if (!id) fail('uso: pake bump <id> [patch|minor|major|x.y.z]');
+  if (!id) {fail('uso: pake bump <id> [patch|minor|major|x.y.z]');}
   bumpInRegistry(id, release);
 }
 
 function cmdUpdate(argv) {
   const { positional, flags } = parseArgs(argv);
-  if (positional.length === 0) fail('uso: pake update <id> [id...] [--release patch|minor|major]');
+  if (positional.length === 0) {fail('uso: pake update <id> [id...] [--release patch|minor|major]');}
   const release = flags.release ?? 'patch';
   for (const id of positional) {
     const app = bumpInRegistry(id, release);
@@ -379,16 +378,21 @@ Mas el campo propio "appVersion" (x.y.z) que gestiona este repo.`);
 }
 
 const commands = {
-  list: cmdList,
   add: cmdAdd,
-  remove: cmdRemove,
   build: cmdBuild,
-  install: cmdInstall,
-  uninstall: cmdUninstall,
   bump: cmdBump,
-  update: cmdUpdate,
   help: cmdHelp,
+  install: cmdInstall,
+  list: cmdList,
+  remove: cmdRemove,
+  uninstall: cmdUninstall,
+  update: cmdUpdate,
 };
 
 const [command = 'help', ...rest] = process.argv.slice(2);
-(commands[command] ?? cmdHelp)(rest);
+try {
+  (commands[command] ?? cmdHelp)(rest);
+} catch (error) {
+  console.error(`error: ${error.message}`);
+  process.exit(1);
+}

@@ -1,0 +1,154 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "promise",
+    "node"
+  ],
+  "options": {
+    "typeAware": true,
+    "typeCheck": true,
+    "reportUnusedDisableDirectives": "warn"
+  },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "rules": {
+    "import/no-cycle": "warn",
+    "import/no-unassigned-import": "off",
+    "no-underscore-dangle": "off",
+    "sort-imports": [
+      "error",
+      {
+        "ignoreDeclarationSort": true,
+        "ignoreCase": true
+      }
+    ],
+    "sort-keys": [
+      "warn",
+      "asc",
+      {
+        "caseSensitive": false,
+        "natural": true,
+        "allowLineSeparatedGroups": true
+      }
+    ],
+    "typescript/consistent-type-imports": [
+      "warn",
+      {
+        "disallowTypeAnnotations": false,
+        "fixStyle": "inline-type-imports",
+        "prefer": "type-imports"
+      }
+    ],
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-floating-promises": [
+      "error",
+      {
+        "ignoreVoid": true
+      }
+    ],
+    "typescript/no-unsafe-assignment": "warn",
+    "typescript/no-unsafe-call": "warn",
+    "typescript/no-unsafe-member-access": "warn",
+    "typescript/no-unsafe-return": "warn",
+    "typescript/no-unsafe-type-assertion": "warn",
+    "typescript/no-unnecessary-condition": "warn",
+    "typescript/prefer-nullish-coalescing": "warn",
+    "typescript/switch-exhaustiveness-check": [
+      "warn",
+      {
+        "allowDefaultCaseForExhaustiveSwitch": true,
+        "considerDefaultExhaustiveForUnions": true
+      }
+    ],
+    "typescript/no-namespace": ["error", { "allowDeclarations": true }],
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "curly": ["warn", "all"],
+    "object-shorthand": ["warn", "always"],
+    "prefer-template": "warn",
+    "arrow-body-style": ["warn", "as-needed"],
+    "no-implicit-coercion": "warn",
+    "no-nested-ternary": "warn",
+    "no-throw-literal": "warn",
+    "no-useless-rename": "warn",
+    "no-useless-concat": "warn",
+    "array-callback-return": "warn",
+    "no-unused-expressions": [
+      "warn",
+      {
+        "allowShortCircuit": true,
+        "allowTaggedTemplates": true,
+        "allowTernary": true
+      }
+    ],
+    "react-hooks/exhaustive-deps": "warn",
+    "react/jsx-curly-brace-presence": "warn",
+    "react/jsx-boolean-value": ["warn", "always"],
+    "unicorn/prefer-array-find": "warn",
+    "unicorn/prefer-array-some": "warn",
+    "unicorn/prefer-array-flat-map": "warn",
+    "unicorn/prefer-includes": "warn",
+    "unicorn/prefer-date-now": "warn",
+    "unicorn/prefer-string-starts-ends-with": "warn",
+    "unicorn/prefer-regexp-test": "warn",
+    "unicorn/prefer-ternary": "warn",
+    "unicorn/throw-new-error": "warn",
+    "unicorn/no-instanceof-array": "warn",
+    "max-lines": ["warn", { "max": 300, "skipBlankLines": true, "skipComments": true }],
+    "max-lines-per-function": [
+      "warn",
+      { "max": 100, "skipBlankLines": true, "skipComments": true }
+    ],
+    "max-params": ["warn", { "max": 4 }],
+    "max-depth": ["warn", { "max": 4 }],
+    "max-nested-callbacks": ["warn", { "max": 3 }],
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.{ts,tsx}", "**/test/**"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "max-nested-callbacks": "off"
+      }
+    },
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-unnecessary-condition": "off"
+      }
+    },
+  ],
+  "ignorePatterns": [
+    "dist/**",
+    "node_modules/**",
+    ".agents/**",
+    ".claude/**",
+  ]
+}
