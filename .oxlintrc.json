@@ -1,13 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "typescript",
-    "unicorn",
-    "oxc",
-    "import",
-    "promise",
-    "node"
-  ],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "node"],
   "options": {
     "typeAware": true,
     "typeCheck": true,
@@ -113,7 +106,7 @@
     ],
     "max-params": ["warn", { "max": 4 }],
     "max-depth": ["warn", { "max": 4 }],
-    "max-nested-callbacks": ["warn", { "max": 3 }],
+    "max-nested-callbacks": ["warn", { "max": 3 }]
   },
   "overrides": [
     {
@@ -143,12 +136,7 @@
         "typescript/no-unsafe-type-assertion": "off",
         "typescript/no-unnecessary-condition": "off"
       }
-    },
+    }
   ],
-  "ignorePatterns": [
-    "dist/**",
-    "node_modules/**",
-    ".agents/**",
-    ".claude/**",
-  ]
+  "ignorePatterns": ["dist/**", "node_modules/**", ".agents/**", ".claude/**"]
 }

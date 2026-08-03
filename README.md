@@ -63,17 +63,17 @@ bundle y solo copia a `/Applications`.
 
 ## Comandos
 
-| Comando | Descripcion |
-| --- | --- |
-| `pnpm pake list` | Lista apps, version y ultimo build |
-| `pnpm pake add <url> --name "N" [--set k=v]` | Registra una app nueva |
-| `pnpm pake remove <id> [--uninstall]` | Elimina la app del registro (y de /Applications) |
-| `pnpm pake build [id...] [--debug]` | Compila a `dist/<id>/` (todas si no hay id) |
-| `pnpm pake install [id...]` | Build si hace falta + copia a /Applications |
-| `pnpm pake uninstall <id...>` | Elimina el .app de /Applications |
-| `pnpm pake bump <id> [patch\|minor\|major\|x.y.z]` | Sube `appVersion` |
-| `pnpm pake update <id...> [--release r]` | bump + build + install |
-| `pnpm pake help` | Ayuda |
+| Comando                                            | Descripcion                                      |
+| -------------------------------------------------- | ------------------------------------------------ |
+| `pnpm pake list`                                   | Lista apps, version y ultimo build               |
+| `pnpm pake add <url> --name "N" [--set k=v]`       | Registra una app nueva                           |
+| `pnpm pake remove <id> [--uninstall]`              | Elimina la app del registro (y de /Applications) |
+| `pnpm pake build [id...] [--debug]`                | Compila a `dist/<id>/` (todas si no hay id)      |
+| `pnpm pake install [id...]`                        | Build si hace falta + copia a /Applications      |
+| `pnpm pake uninstall <id...>`                      | Elimina el .app de /Applications                 |
+| `pnpm pake bump <id> [patch\|minor\|major\|x.y.z]` | Sube `appVersion`                                |
+| `pnpm pake update <id...> [--release r]`           | bump + build + install                           |
+| `pnpm pake help`                                   | Ayuda                                            |
 
 ## Notas
 

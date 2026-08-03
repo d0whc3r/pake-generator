@@ -1,9 +1,16 @@
 {
   "name": "pake-generator",
   "version": "1.0.0",
-  "description": "Registro y herramientas para generar, instalar y mantener apps de escritorio en macOS con Pake",
-  "type": "module",
   "private": true,
+  "description": "Registro y herramientas para generar, instalar y mantener apps de escritorio en macOS con Pake",
+  "keywords": [
+    "desktop-apps",
+    "macos",
+    "pake",
+    "tauri"
+  ],
+  "license": "MIT",
+  "type": "module",
   "scripts": {
     "pake": "tsx src/cli.ts",
     "type-check": "tsc --noEmit",
@@ -12,23 +19,6 @@
     "format": "oxfmt --no-error-on-unmatched-pattern",
     "format:check": "oxfmt --no-error-on-unmatched-pattern --check",
     "format:fix": "pnpm lint:fix --fix-suggestions && pnpm format"
-  },
-  "oclif": {
-    "bin": "pake",
-    "dirname": "pake-apps",
-    "commands": "./src/commands",
-    "topicSeparator": " "
-  },
-  "keywords": [
-    "pake",
-    "tauri",
-    "macos",
-    "desktop-apps"
-  ],
-  "license": "MIT",
-  "packageManager": "pnpm@10.26.2",
-  "engines": {
-    "node": ">=24"
   },
   "devDependencies": {
     "@oclif/core": "4.13.2",
@@ -41,5 +31,15 @@
     "pake-cli": "3.15.5",
     "tsx": "4.23.5",
     "typescript": "7.0.2"
-  }
+  },
+  "oclif": {
+    "bin": "pake",
+    "commands": "./src/commands",
+    "dirname": "pake-apps",
+    "topicSeparator": " "
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@10.26.2"
 }

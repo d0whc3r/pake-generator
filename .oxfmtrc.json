@@ -24,9 +24,5 @@
   },
   "sortPackageJson": true,
   "embeddedLanguageFormatting": "auto",
-  "ignorePatterns": [
-    ".agents/**",
-    ".claude/**",
-    "dist/**",
-  ]
+  "ignorePatterns": [".agents/**", ".claude/**", "dist/**"]
 }
