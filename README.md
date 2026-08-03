@@ -32,6 +32,16 @@ The names are resolved against `apps/inject/` and passed to pake as flags, not
 in the config: pake resolves the config's relative paths against its cwd, which
 during the build is `dist/<id>/`.
 
+### Patch of pake-cli
+
+`patches/pake-cli@3.15.5.patch` (applied by pnpm on install) makes popups
+(`"newWindow": true`) work on macOS 26. Pake builds the popup as a Tauri window
+and that crashes; the patch answers wry with `NewWindowResponse::Allow`, which
+builds it from the `WKWebViewConfiguration` WebKit hands over, and lets
+`about:blank` popups through Pake's `window.open` override so that windows the
+site fills through `window.opener` (Slack huddles) get a real window. Rebuilding
+the patch after upgrading pake-cli: `pnpm patch pake-cli@<version>`.
+
 ## Daily usage
 
 ```sh
