@@ -6,7 +6,9 @@
   "width": 1200,
   "height": 800,
   "hideTitleBar": true,
+  "microphone": true,
+  "camera": true,
   "enableDragDrop": true,
   "targets": "apple",
-  "appVersion": "1.0.0"
+  "appVersion": "1.0.1"
 }
