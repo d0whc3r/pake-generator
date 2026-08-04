@@ -9,10 +9,12 @@
   "newWindow": true,
   "safeDomain": "slack.com,accounts.google.com",
   "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
-  "inject": ["microphone-warmup.js"],
+  "inject": [
+    "microphone-warmup.js"
+  ],
   "microphone": true,
   "camera": true,
   "enableDragDrop": true,
   "targets": "apple",
-  "appVersion": "1.0.14"
+  "appVersion": "1.0.15"
 }

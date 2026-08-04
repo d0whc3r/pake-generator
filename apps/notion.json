@@ -8,8 +8,10 @@
   "hideTitleBar": true,
   "newWindow": false,
   "safeDomain": "notion.so,notion.com,accounts.google.com",
-  "inject": ["popup-to-redirect.js"],
+  "inject": [
+    "popup-to-redirect.js"
+  ],
   "enableDragDrop": true,
   "targets": "apple",
-  "appVersion": "1.0.7"
+  "appVersion": "1.0.8"
 }
