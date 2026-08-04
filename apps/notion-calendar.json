@@ -10,5 +10,5 @@
   "safeDomain": "calendar.notion.so,notion.so,notion.com,accounts.google.com",
   "inject": ["popup-to-redirect.js"],
   "targets": "apple",
-  "appVersion": "1.0.3"
+  "appVersion": "1.0.4"
 }
