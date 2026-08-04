@@ -239,6 +239,11 @@ function commitBumps(releases: DetectedRelease[], log: (msg: string) => void): v
     changelogSection(tagFor(release.id, release.version), release.notes, date),
   )
   const files = bumped.map((release) => appFile(release.id))
+  // writeApp serializes with JSON.stringify, which expands the short arrays
+  // oxfmt keeps on one line: without this the bump commit lands on main
+  // failing `pnpm format:check`, and the commit that fixes the formatting
+  // touches apps/<id>.json again, releasing those same apps once more.
+  run('pnpm', ['format', ...files], { cwd: ROOT, stdio: 'ignore' })
   if (updateChangelog(sections)) {
     files.push(CHANGELOG_FILE)
   }

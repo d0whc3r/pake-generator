@@ -61,6 +61,16 @@ jobs:
       # shared by every app: only the `pake` crate itself embeds the per-app
       # config, its ~344 dependencies compile identically for all of them.
       CARGO_TARGET_DIR: ${{ github.workspace }}/.cargo-target
+      # pake's release profile is tuned for binary size (codegen-units = 1,
+      # lto = "thin"), and every app pays its whole-program link again: the
+      # `pake` crate embeds the config, so its codegen and the LTO pass over
+      # the whole graph never come from the cache. ~1 MB more binary buys a
+      # 45% shorter per-app build.
+      CARGO_PROFILE_RELEASE_LTO: false
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: 16
+      # Bundle the .app directly instead of a .dmg the build would only mount
+      # again to extract it: the release asset is the zip of the .app anyway.
+      PAKE_CREATE_APP: "1"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -69,9 +79,12 @@ jobs:
       - uses: ./.github/actions/setup
       - id: cargo
         # Keyed on the Rust dependency graph, not on pnpm-lock.yaml: a bump of
-        # any JS devDependency must not throw away the compiled crates.
-        run: echo "key=$(shasum -a 256 node_modules/pake-cli/src-tauri/Cargo.lock | cut -c1-16)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+        # any JS devDependency must not throw away the compiled crates. The
+        # profile overrides are part of the key because cache entries are
+        # immutable: reusing a key would restore artifacts cargo then discards
+        # as stale, and never store the new ones.
+        run: echo "key=$(shasum -a 256 node_modules/pake-cli/src-tauri/Cargo.lock | cut -c1-16)-lto$CARGO_PROFILE_RELEASE_LTO-cgu$CARGO_PROFILE_RELEASE_CODEGEN_UNITS" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry/index

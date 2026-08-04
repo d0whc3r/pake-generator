@@ -95,8 +95,8 @@ pnpm pake bump telegram 2.0.0     # explicit version
    notes to `CHANGELOG.md` and feeds a matrix with the apps to release.
 3. **release** (only pushes to `main`, one macOS job per app): builds the app
    with pake, tags `<id>@<version>` and creates the GitHub Release with the
-   `.zip` of the `.app` (plus the `.dmg` when pake produces one) as assets
-   (`pnpm pake release-app <id>`). Apps are never published from PRs.
+   `.zip` of the `.app` as asset (`pnpm pake release-app <id>`). Apps are never
+   published from PRs.
 
 Release tags have the format `<id>@<version>` (e.g. `slack@1.0.11`). The first
 time an app goes through the pipeline there is no tag yet, so one is created
@@ -132,7 +132,9 @@ reuses the bundle and only copies it to `/Applications`.
 - The first Pake build is slow: it downloads its Tauri template and compiles
   the Rust dependencies. The following ones are much faster.
 - With `"targets": "apple"` Pake produces a `.dmg`; the script mounts it,
-  extracts the `.app` into `dist/<id>/` and installs it from there.
+  extracts the `.app` into `dist/<id>/` and installs it from there. The
+  pipeline sets `PAKE_CREATE_APP=1` to get the `.app` straight away, since
+  creating the `.dmg` only to mount it again costs ~20s per app.
 - The `.app` bundles are installed with an ad-hoc signature (like any local
   Tauri build); since they are compiled on your machine they carry no
   Gatekeeper quarantine.
