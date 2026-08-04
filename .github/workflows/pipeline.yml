@@ -1,0 +1,90 @@
+name: pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm type-check
+      - run: pnpm test
+      - run: pnpm build
+
+  detect:
+    name: detect releases
+    needs: quality
+    runs-on: ubuntu-latest
+    outputs:
+      has: ${{ steps.detect.outputs.has }}
+      matrix: ${{ steps.detect.outputs.matrix }}
+      sha: ${{ steps.detect.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - name: git identity for the version bump commit
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - id: detect
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Only main publishes: elsewhere (PRs, manual runs on branches) the
+        # detection is a dry-run, so no seed tags nor bump commit are pushed.
+        run: |
+          if [ "${{ github.event_name == 'pull_request' || github.ref != 'refs/heads/main' }}" = "true" ]; then
+            pnpm pake release-detect --dry
+          else
+            pnpm pake release-detect
+          fi
+
+  release:
+    name: release ${{ matrix.id }}
+    needs: detect
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.detect.outputs.has == 'true'
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.detect.outputs.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm pake release-app ${{ matrix.id }}

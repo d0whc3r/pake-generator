@@ -78,6 +78,35 @@ pnpm pake bump telegram minor     # 1.0.1 -> 1.1.0
 pnpm pake bump telegram 2.0.0     # explicit version
 ```
 
+## Pipeline (GitHub Actions)
+
+`.github/workflows/pipeline.yml` runs three stages:
+
+1. **quality** (PRs and pushes to `main`): lint, format, type-check, tests and
+   the tsdown build.
+2. **detect** (PRs and pushes): runs a per-app [semantic-release](https://semantic-release.gitbook.io)
+   analysis (`pnpm pake release-detect`). A commit releases an app when it is
+   a conventional commit (`fix:` patch, `feat:` minor, `BREAKING CHANGE`
+   major) and touches `apps/<id>.json`, or a shared path that changes every
+   app: `apps/inject/`, `patches/`, `package.json`, `pnpm-lock.yaml`. On PRs
+   it runs with `--dry`, so it only reports what would be released; only on
+   `main` does it push the seed tags and bump `appVersion` in a single
+   `chore(release): ... [skip ci]` commit that feeds a matrix with the apps
+   to release.
+3. **release** (only pushes to `main`, one macOS job per app): builds the app
+   with pake, tags `<id>@<version>` and creates the GitHub Release with the
+   `.zip` of the `.app` (plus the `.dmg` when pake produces one) as assets
+   (`pnpm pake release-app <id>`). Apps are never published from PRs.
+
+Release tags have the format `<id>@<version>` (e.g. `slack@1.0.11`). The first
+time an app goes through the pipeline there is no tag yet, so one is created
+from its current `appVersion` pointing at the root commit; versions continue
+from there. To preview locally what would be released:
+
+```sh
+pnpm pake release-detect --dry
+```
+
 `pnpm pake update <id>` is equivalent to `bump` + `build` + `install`.
 
 The `install` script only rebuilds when the version of the build in `dist/`
