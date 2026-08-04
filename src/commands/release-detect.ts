@@ -20,7 +20,9 @@ export default class ReleaseDetect extends Command {
   async run(): Promise<void> {
     const { flags } = await this.parse(ReleaseDetect)
     const { releases, sha } = await detectReleases({ dry: flags.dry, log: (msg) => this.log(msg) })
-    const matrix = JSON.stringify({ include: releases })
+    // The matrix only needs the ids; notes stay out of the workflow output.
+    const include = releases.map(({ id, type, version }) => ({ id, type, version }))
+    const matrix = JSON.stringify({ include })
     this.log(releases.length === 0 ? 'no app needs a release' : `matrix: ${matrix}`)
     writeGithubOutput('has', String(releases.length > 0))
     writeGithubOutput('matrix', matrix)

@@ -91,8 +91,8 @@ pnpm pake bump telegram 2.0.0     # explicit version
    app: `apps/inject/`, `patches/`, `package.json`, `pnpm-lock.yaml`. On PRs
    it runs with `--dry`, so it only reports what would be released; only on
    `main` does it push the seed tags and bump `appVersion` in a single
-   `chore(release): ... [skip ci]` commit that feeds a matrix with the apps
-   to release.
+   `chore(release): ... [skip ci]` commit that also prepends the release
+   notes to `CHANGELOG.md` and feeds a matrix with the apps to release.
 3. **release** (only pushes to `main`, one macOS job per app): builds the app
    with pake, tags `<id>@<version>` and creates the GitHub Release with the
    `.zip` of the `.app` (plus the `.dmg` when pake produces one) as assets

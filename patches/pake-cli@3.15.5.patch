@@ -1,8 +1,40 @@
+diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
+index 75ba4aabdbe2be14be0c771584ca3b67c5eb4d15..3c1689356cbf7ee860f5a39b0fd87dd6e252dce6 100644
+--- a/src-tauri/Cargo.lock
++++ b/src-tauri/Cargo.lock
+@@ -2571,6 +2571,7 @@ dependencies = [
+  "objc2",
+  "objc2-app-kit",
+  "objc2-foundation",
++ "regex",
+  "serde",
+  "serde_json",
+  "tauri",
+diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
+index 0c3d1e39d46c36b34f139cbd0c447f56f44c0325..31f080aac9b5ace7dd8f2a5500b6339e623d2ed2 100644
+--- a/src-tauri/Cargo.toml
++++ b/src-tauri/Cargo.toml
+@@ -21,6 +21,7 @@ tauri-build = { version = "2.5.5", features = [] }
+ serde_json = "1.0.149"
+ serde = { version = "1.0.228", features = ["derive"] }
+ tokio = { version = "1.49.0", features = ["time"] }
++regex = "1.12"
+ tauri = { version = "2.10.2", features = [
+   "tray-icon",
+   "image-ico",
 diff --git a/src-tauri/src/app/window.rs b/src-tauri/src/app/window.rs
-index 4efcb937e0cbe552740bce0836519f3ef55b3212..9d35fa4758492838ff9c520fa31a2dc24a47ea52 100644
+index 4efcb937e0cbe552740bce0836519f3ef55b3212..6641acb69badb67331ea093f1372f61b95cb4886 100644
 --- a/src-tauri/src/app/window.rs
 +++ b/src-tauri/src/app/window.rs
-@@ -150,6 +150,66 @@ pub fn reapply_window_icon(window: &WebviewWindow) {
+@@ -16,6 +16,7 @@ use tauri::{
+     webview::{DownloadEvent, NewWindowFeatures, NewWindowResponse},
+     AppHandle, Config, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+ };
++use tauri_plugin_opener::OpenerExt;
+ 
+ #[cfg(target_os = "windows")]
+ use windows_sys::Win32::UI::{
+@@ -150,6 +151,66 @@ pub fn reapply_window_icon(window: &WebviewWindow) {
  #[cfg(not(target_os = "windows"))]
  pub fn reapply_window_icon(_window: &WebviewWindow) {}
  
@@ -69,19 +101,45 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..9d35fa4758492838ff9c520fa31a2dc2
  struct WindowBuildOptions<'a> {
      label: &'a str,
      url: WebviewUrl,
-@@ -157,6 +217,7 @@ struct WindowBuildOptions<'a> {
+@@ -157,6 +218,24 @@ struct WindowBuildOptions<'a> {
      new_window_features: Option<NewWindowFeatures>,
  }
  
++// Mirrors the routing event.js applies to links: internal_url_regex (compiled
++// by the CLI from --safe-domain) decides what may stay inside the app. An
++// empty or invalid pattern means "everything http(s) is external", which
++// matches the JS fallback to plain domain checks failing closed here.
++fn is_internal_popup_url(internal_pattern: &str, url: &str) -> bool {
++    if internal_pattern.is_empty() {
++        return false;
++    }
++    match regex::Regex::new(internal_pattern) {
++        Ok(pattern) => pattern.is_match(url),
++        Err(error) => {
++            eprintln!("[Pake] Invalid internal_url_regex \"{internal_pattern}\": {error}");
++            false
++        }
++    }
++}
++
 +#[allow(dead_code)] // kept for reference: the popup path Allow replaces
  fn open_requested_window(
      app: &AppHandle,
      config: &PakeConfig,
-@@ -371,23 +432,18 @@ fn build_window(
+@@ -371,23 +450,37 @@ fn build_window(
      }
  
      if window_config.new_window {
--        let app_handle = app.clone();
++        // External http(s) popups do not belong in the app. event.js already
++        // routes the ones it can see (anchor clicks, window.open) to the
++        // system browser, but new windows also reach the webview natively:
++        // target=_blank form posts, clicks inside shadow roots, or scripts in
++        // popups without Tauri access. Catch those here and hand them to the
++        // system browser instead of letting wry open an in-app window for
++        // them. about:blank and non-routable URLs stay: a popup that navigates
++        // itself through window.opener (a Slack huddle, for one) has no URL to
++        // route yet.
+         let app_handle = app.clone();
 -        let popup_config = config.clone();
 -        let popup_tauri_config = tauri_config.clone();
 -        window_builder = window_builder.on_new_window(move |target_url, features| {
@@ -96,8 +154,7 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..9d35fa4758492838ff9c520fa31a2dc2
 -                Err(error) => {
 -                    eprintln!("[Pake] Failed to open requested window: {error}");
 -                    NewWindowResponse::Deny
--                }
--            }
++        let internal_pattern = window_config.internal_url_regex.clone();
 +        // Building the popup as a Tauri window crashes on macOS 26 either way:
 +        // reusing the opener WKWebViewConfiguration registers its script message
 +        // handlers twice, and creating our own makes WebKit abort inside
@@ -106,7 +163,15 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..9d35fa4758492838ff9c520fa31a2dc2
 +        // of wry's WKUIDelegate). Allow lets wry build the window from that
 +        // configuration, which is also what gives the page a real window.opener
 +        // and a resizable window sized from the window features.
-+        window_builder = window_builder.on_new_window(|_target_url, _features| {
++        window_builder = window_builder.on_new_window(move |target_url, _features| {
++            let url = target_url.as_str();
++            let routable = url.starts_with("https://") || url.starts_with("http://");
++            if routable && !is_internal_popup_url(&internal_pattern, url) {
++                if let Err(error) = app_handle.opener().open_url(url, None::<String>) {
++                    eprintln!("[Pake] Failed to open {url} in the system browser: {error}");
+                 }
++                return NewWindowResponse::Deny;
+             }
 +            #[cfg(target_os = "macos")]
 +            share_ui_delegate_with_popups();
 +            NewWindowResponse::Allow
@@ -114,10 +179,39 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..9d35fa4758492838ff9c520fa31a2dc2
      }
  
 diff --git a/src-tauri/src/inject/event.js b/src-tauri/src/inject/event.js
-index 8dc757b40964bdcea9bd6c007449785658331983..de27d32c1ae7dc90fb3e3d7fe662a5718d0f56eb 100644
+index 8dc757b40964bdcea9bd6c007449785658331983..98f70500ebc54eb0cde04386f42119350a3d6d8a 100644
 --- a/src-tauri/src/inject/event.js
 +++ b/src-tauri/src/inject/event.js
-@@ -858,6 +858,14 @@ document.addEventListener("DOMContentLoaded", () => {
+@@ -673,6 +673,28 @@ document.addEventListener("DOMContentLoaded", () => {
+     invoke("plugin:shell|open", {
+       path: url,
+     }).catch((error) => {
++      // Popups (a Slack huddle, for one) are not Tauri-managed webviews: the
++      // shell permission covers only the main "pake" webview, so their invoke
++      // is rejected. Ask the opener to open the URL on our behalf.
++      try {
++        if (
++          window.opener &&
++          typeof window.opener.pakeOpenExternal === "function"
++        ) {
++          window.opener.pakeOpenExternal(url);
++          return;
++        }
++      } catch (openerError) {
++        console.error("Failed to delegate URL to the opener window:", openerError);
++      }
++      console.error("Failed to open URL with shell:", url, error);
++    });
++  };
++
++  // Lets popups route external links through a window whose webview label
++  // ("pake") holds the shell:allow-open permission.
++  window.pakeOpenExternal = (url) => {
++    invoke("plugin:shell|open", { path: url }).catch((error) => {
+       console.error("Failed to open URL with shell:", url, error);
+     });
+   };
+@@ -858,6 +880,14 @@ document.addEventListener("DOMContentLoaded", () => {
        return originalWindowOpen.call(window, url, name, specs);
      }
  

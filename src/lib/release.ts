@@ -17,6 +17,7 @@ import semanticRelease, {
   type Result,
   type VerifyConditionsContext,
 } from 'semantic-release'
+import { CHANGELOG_FILE, changelogSection, updateChangelog } from './changelog'
 import { appFile, appVersion, DIST_DIR, listAppIds, readApp, ROOT, run, writeApp } from './core'
 import { buildApp } from './pake'
 
@@ -41,6 +42,7 @@ interface InlinePlugin {
 
 export interface DetectedRelease {
   id: string
+  notes: string
   type: string
   version: string
 }
@@ -106,10 +108,11 @@ export function collectAssets(dir: string): ReleaseAsset[] {
 
 /**
  * Per-app semantic-release dry-run: which apps need a release and at which
- * version. Bumps apps/<id>.json in a single [skip ci] commit so the matrix
- * jobs build with the version they will publish. The first run of an app has
- * no <id>@* tag yet; one is created at the root commit from the current
- * appVersion so versions continue from the hand-managed ones.
+ * version. Bumps apps/<id>.json and prepends the release notes to
+ * CHANGELOG.md in a single [skip ci] commit so the matrix jobs build with
+ * the version they will publish. The first run of an app has no <id>@* tag
+ * yet; one is created at the root commit from the current appVersion so
+ * versions continue from the hand-managed ones.
  */
 export async function detectReleases(options: DetectOptions = {}): Promise<DetectResult> {
   const { dry = false, log = console.log } = options
@@ -177,9 +180,9 @@ async function analyzeApp(id: string, log: (msg: string) => void): Promise<Detec
     log(`-- ${id}: up to date`)
     return null
   }
-  const { type, version } = result.nextRelease
+  const { notes = '', type, version } = result.nextRelease
   log(`>> ${id}: ${type} -> v${version}`)
-  return { id, type, version }
+  return { id, notes, type, version }
 }
 
 function publishPlugin(id: string, options: Required<ReleaseAppOptions>): InlinePlugin {
@@ -231,8 +234,16 @@ function commitBumps(releases: DetectedRelease[], log: (msg: string) => void): v
   if (bumped.length === 0) {
     return
   }
+  const date = new Date().toISOString().slice(0, 10)
+  const sections = bumped.map((release) =>
+    changelogSection(tagFor(release.id, release.version), release.notes, date),
+  )
+  const files = bumped.map((release) => appFile(release.id))
+  if (updateChangelog(sections)) {
+    files.push(CHANGELOG_FILE)
+  }
   const summary = bumped.map((release) => tagFor(release.id, release.version)).join(', ')
-  git(['add', ...bumped.map((release) => appFile(release.id))])
+  git(['add', ...files])
   git(['commit', '-m', `chore(release): bump ${summary} [skip ci]`])
   git(['push', 'origin', 'HEAD:main'])
   log(`bumped ${summary}`)

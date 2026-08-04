@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   pake-cli@3.15.5:
-    hash: 64a23318c1192a22f73c94c9de982731d392433ef84f9c7be89bc86d4ed1627b
+    hash: c6c7fca9418d2d49be7e3b9fd5b3f9954fa1dcfa2ee282357615353dde1fc05d
     path: patches/pake-cli@3.15.5.patch
 
 importers:
@@ -48,7 +48,7 @@ importers:
         version: 7.0.2001
       pake-cli:
         specifier: 3.15.5
-        version: 3.15.5(patch_hash=64a23318c1192a22f73c94c9de982731d392433ef84f9c7be89bc86d4ed1627b)
+        version: 3.15.5(patch_hash=c6c7fca9418d2d49be7e3b9fd5b3f9954fa1dcfa2ee282357615353dde1fc05d)
       semantic-release:
         specifier: 25.0.8
         version: 25.0.8(typescript@7.0.2)
@@ -6174,7 +6174,7 @@ snapshots:
       registry-url: 6.0.1
       semver: 7.8.5
 
-  pake-cli@3.15.5(patch_hash=64a23318c1192a22f73c94c9de982731d392433ef84f9c7be89bc86d4ed1627b):
+  pake-cli@3.15.5(patch_hash=c6c7fca9418d2d49be7e3b9fd5b3f9954fa1dcfa2ee282357615353dde1fc05d):
     dependencies:
       '@tauri-apps/api': 2.10.1
       '@tauri-apps/cli': 2.11.4
