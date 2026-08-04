@@ -61,6 +61,15 @@ detected apps: builds with pake, tags `<id>@<version>` and creates the GitHub
 Release with the zipped `.app`. A failing app doesn't skip the rest, the job
 just fails at the end. Apps are never published from a PR.
 
+After each app that publishes, `pnpm pake readme` rewrites the release table
+between the `<!-- releases:start -->` markers of `README.md` — so a build that
+fails later in the loop doesn't hold back the links of the ones already out. The
+table is derived from the `<id>@<version>` tags, never from `appVersion`: an app
+whose build failed keeps its previous link instead of pointing at a release that
+does not exist. When the loop ends the job formats `README.md`, and if it changed
+commits and pushes it to `main` as `docs(release): update README release links
+[skip ci]`.
+
 One job instead of a matrix because the Rust dependency graph is what costs:
 with a runner per app each one recompiles those ~344 crates and they all race to
 save the same cache key. Sequentially in a single warm `CARGO_TARGET_DIR` only

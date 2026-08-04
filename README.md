@@ -50,6 +50,24 @@ pnpm pake install slack
 | `slack`           | app.slack.com      | huddles: Chrome UA, mic warm-up, mic + cam |
 | `telegram`        | web.telegram.org   | microphone + camera                        |
 
+### Latest releases
+
+Updated by the pipeline after each successful build.
+
+<!-- releases:start -->
+
+| ID                | Latest release                                                                                        | Download                                                                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `claude`          | [claude@1.0.1](https://github.com/d0whc3r/pake-generator/releases/tag/claude@1.0.1)                   | [claude-v1.0.1-macos.zip](https://github.com/d0whc3r/pake-generator/releases/download/claude@1.0.1/claude-v1.0.1-macos.zip)                            |
+| `discord`         | [discord@1.0.1](https://github.com/d0whc3r/pake-generator/releases/tag/discord@1.0.1)                 | [discord-v1.0.1-macos.zip](https://github.com/d0whc3r/pake-generator/releases/download/discord@1.0.1/discord-v1.0.1-macos.zip)                         |
+| `figma`           | [figma@1.0.2](https://github.com/d0whc3r/pake-generator/releases/tag/figma@1.0.2)                     | [figma-v1.0.2-macos.zip](https://github.com/d0whc3r/pake-generator/releases/download/figma@1.0.2/figma-v1.0.2-macos.zip)                               |
+| `notion-calendar` | [notion-calendar@1.0.5](https://github.com/d0whc3r/pake-generator/releases/tag/notion-calendar@1.0.5) | [notion-calendar-v1.0.5-macos.zip](https://github.com/d0whc3r/pake-generator/releases/download/notion-calendar@1.0.5/notion-calendar-v1.0.5-macos.zip) |
+| `notion`          | [notion@1.0.8](https://github.com/d0whc3r/pake-generator/releases/tag/notion@1.0.8)                   | [notion-v1.0.8-macos.zip](https://github.com/d0whc3r/pake-generator/releases/download/notion@1.0.8/notion-v1.0.8-macos.zip)                            |
+| `slack`           | [slack@1.0.15](https://github.com/d0whc3r/pake-generator/releases/tag/slack@1.0.15)                   | [slack-v1.0.15-macos.zip](https://github.com/d0whc3r/pake-generator/releases/download/slack@1.0.15/slack-v1.0.15-macos.zip)                            |
+| `telegram`        | [telegram@1.0.3](https://github.com/d0whc3r/pake-generator/releases/tag/telegram@1.0.3)               | [telegram-v1.0.3-macos.zip](https://github.com/d0whc3r/pake-generator/releases/download/telegram@1.0.3/telegram-v1.0.3-macos.zip)                      |
+
+<!-- releases:end -->
+
 ## Everyday use
 
 ```sh
@@ -147,8 +165,8 @@ carries the zipped `.app`. See [docs/RELEASES.md](docs/RELEASES.md).
 | `pnpm pake remake [id...] [--install]`             | Upgrade pake-cli, bump and rebuild                 |
 | `pnpm pake help`                                   | Help for any command                               |
 
-`release-detect` and `release-app` also exist; they are the CI entry points and
-are documented in [docs/RELEASES.md](docs/RELEASES.md).
+`release-detect`, `release-app` and `readme` also exist; they are the CI entry
+points and are documented in [docs/RELEASES.md](docs/RELEASES.md).
 
 ## Good to know
 

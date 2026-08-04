@@ -101,10 +101,32 @@ jobs:
         # the matrix); the job still fails at the end. The bundle dir is dropped
         # before each build: whatever is in there belongs to the cache or to the
         # previous app, and risks publishing a stale .app if a build stops short.
+        # The README links are refreshed after each published app, so a failing
+        # build later in the loop doesn't hold back the ones already out.
         run: |
           fail=0
           for id in $IDS; do
             rm -rf "$CARGO_TARGET_DIR"/*/release/bundle "$CARGO_TARGET_DIR"/release/bundle
-            pnpm pake release-app "$id" || fail=1
+            if pnpm pake release-app "$id"; then
+              pnpm pake readme
+            else
+              fail=1
+            fi
           done
           exit $fail
+      - name: commit the README release links
+        # Also when an app failed: the links of the published ones are valid.
+        # `pake readme` derives the table from the <id>@<version> tags, so this
+        # only commits what actually got released.
+        if: always()
+        run: |
+          pnpm format README.md
+          git diff --quiet README.md && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs(release): update README release links [skip ci]"
+          # Detached at the bump commit: rebase first in case main moved while
+          # the apps were building.
+          git pull --rebase origin main
+          git push origin HEAD:main

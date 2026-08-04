@@ -17,6 +17,7 @@ import semanticRelease, {
   type Result,
   type VerifyConditionsContext,
 } from 'semantic-release'
+import type { ReleaseLink } from './readme'
 import { CHANGELOG_FILE, changelogSection, updateChangelog } from './changelog'
 import { appFile, appVersion, DIST_DIR, listAppIds, readApp, ROOT, run, writeApp } from './core'
 import { buildApp } from './pake'
@@ -70,6 +71,22 @@ export interface ReleaseAsset {
 /** Release tag of an app, e.g. slack@1.0.11. */
 export function tagFor(id: string, version: string): string {
   return `${id}@${version}`
+}
+
+/**
+ * Latest published release of every app: its newest `<id>@<version>` tag.
+ * Seed tags are skipped — they sit on the root commit and have no GitHub
+ * release behind them, so an app that never released gets no row.
+ */
+export function latestReleases(): ReleaseLink[] {
+  const root = git(['rev-list', '--max-parents=0', 'HEAD'])
+  return listAppIds().flatMap((id) => {
+    const tags = git(['tag', '--list', `${id}@*`, '--sort=-v:refname']).split('\n')
+    const tag = tags.find(
+      (candidate) => candidate !== '' && git(['rev-list', '-n1', candidate]) !== root,
+    )
+    return tag === undefined ? [] : [{ id, version: tag.slice(id.length + 1) }]
+  })
 }
 
 /** Whether a commit touching `files` should trigger a release of app `id`. */
