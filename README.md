@@ -1,119 +1,138 @@
 # pake-generator
 
-Repo to generate, install and maintain macOS desktop apps out of web pages
-using [Pake](https://github.com/tw93/pake) (Tauri + Rust).
+Turn any website into a lightweight macOS desktop app — and keep it updated.
+Every app is a single JSON file in `apps/`; one command builds it with
+[Pake](https://github.com/tw93/pake) (Tauri + Rust) and installs it into
+`/Applications`.
+
+```sh
+pnpm install
+pnpm pake install slack
+```
+
+## What it does
+
+- **Keeps a registry of apps.** One `apps/<id>.json` per app, in the Pake
+  config format, versioned in git — so an app's window size, permissions and
+  allowed domains are reviewable history instead of shell flags you forgot.
+- **Builds and installs in one step.** `pnpm pake install <id>` compiles the
+  `.app`, extracts it and copies it to `/Applications`. Rebuilds only happen
+  when the version changed.
+- **Versions each app independently.** The version shown in About, Finder and
+  `CFBundleVersion` comes from the app's `appVersion`, bumped as patch, minor,
+  major or an explicit `x.y.z`.
+- **Shares page tweaks between apps.** JS/CSS snippets in `apps/inject/` are
+  referenced by name from any app: turning login popups into redirects, warming
+  up the microphone, and so on.
+- **Publishes releases automatically.** On push to `main`, CI works out which
+  apps a commit affects, bumps their versions and publishes a GitHub Release per
+  app with the zipped `.app` as asset.
+- **Fixes popups on macOS 26.** A pinned pake-cli patch ships with the repo, so
+  `window.open` flows that otherwise crash the app (Slack huddles, Google login)
+  work.
 
 ## Requirements
 
 - macOS with Xcode Command Line Tools
-- Node.js >= 24 and pnpm
+- Node.js >= 24 (see `.nvmrc`) and pnpm
 - Rust (`rustup` or `brew install rust`)
-- The repo dependencies: `pnpm install` (includes `pake-cli` pinned in `package.json`)
+- `pnpm install` — pulls in the pinned `pake-cli` and applies the patch
 
-## How it works
+## Apps in this repo
 
-Each app is an `apps/<id>.json` file in the Pake config format
-([schema](https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json))
-plus an extra `appVersion` field (semver) managed by this repo.
+| ID                | Site               | Notes                                      |
+| ----------------- | ------------------ | ------------------------------------------ |
+| `claude`          | claude.ai          | native popups, drag & drop                 |
+| `discord`         | discord.com        | microphone + camera                        |
+| `figma`           | figma.com          | native popups                              |
+| `notion`          | notion.so          | popups as redirects, drag & drop           |
+| `notion-calendar` | calendar.notion.so | popups as redirects                        |
+| `slack`           | app.slack.com      | huddles: Chrome UA, mic warm-up, mic + cam |
+| `telegram`        | web.telegram.org   | microphone + camera                        |
 
-Builds are generated in `dist/<id>/` (git-ignored) and the state of the last
-build is kept in `dist/state.json`.
-
-### Injected snippets
-
-`apps/inject/` holds the JS/CSS injected into the page, shared across apps. An
-app uses them by naming them in its `inject` field:
-
-```json
-"inject": ["popup-to-redirect.js"]
-```
-
-The names are resolved against `apps/inject/` and passed to pake as flags, not
-in the config: pake resolves the config's relative paths against its cwd, which
-during the build is `dist/<id>/`.
-
-### Patch of pake-cli
-
-`patches/pake-cli@3.15.5.patch` (applied by pnpm on install) makes popups
-(`"newWindow": true`) work on macOS 26. Pake builds the popup as a Tauri window
-and that crashes; the patch answers wry with `NewWindowResponse::Allow`, which
-builds it from the `WKWebViewConfiguration` WebKit hands over, and lets
-`about:blank` popups through Pake's `window.open` override so that windows the
-site fills through `window.opener` (Slack huddles) get a real window. Rebuilding
-the patch after upgrading pake-cli: `pnpm patch pake-cli@<version>`.
-
-## Daily usage
+## Everyday use
 
 ```sh
-pnpm pake list                    # see registered apps, version and last build
-pnpm pake install telegram        # build (if needed) and install into /Applications
-pnpm pake install                 # install all of them
-pnpm pake update telegram         # bump appVersion (patch), rebuild and install
+pnpm pake list                    # registered apps, version and last build
+pnpm pake install slack           # build (if needed) and install into /Applications
+pnpm pake install                 # all of them
+pnpm pake update slack            # bump appVersion (patch), rebuild and install
 pnpm pake update slack --release minor
-pnpm pake uninstall telegram      # remove the .app from /Applications
+pnpm pake uninstall slack         # remove the .app from /Applications
 ```
 
-## Adding a new app
+`pnpm pake update` is `bump` + `build` + `install` in one go. Use it after
+editing an app's JSON so the new build carries a new version.
+
+To pick up a new pake-cli release across every app:
+
+```sh
+pnpm pake remake --install        # upgrade pake-cli, bump, rebuild, reinstall
+pnpm pake remake slack --no-upgrade --no-bump
+```
+
+## Add an app
 
 ```sh
 pnpm pake add https://web.whatsapp.com --name "WhatsApp" \
   --set width=1200 --set height=800 --set hideTitleBar=true
 ```
 
-This creates `apps/whatsapp.json`. Edit the file to tweak any option from the
-Pake schema (`safeDomain`, `inject`, `showSystemTray`, etc.) and then:
+That writes `apps/whatsapp.json`. Then install it:
 
 ```sh
 pnpm pake install whatsapp
 ```
 
-## Version management
+## Configure an app
 
-The version visible in the app (About, Finder, CFBundleVersion) comes from the
-`appVersion` field of each `apps/<id>.json`:
+`apps/<id>.json` accepts every option of the
+[Pake schema](https://raw.githubusercontent.com/tw93/Pake/main/schema/pake.schema.json)
+plus `appVersion` (semver), which this repo manages. The ones that matter most
+in practice:
 
-```sh
-pnpm pake bump telegram           # 1.0.0 -> 1.0.1 (patch)
-pnpm pake bump telegram minor     # 1.0.1 -> 1.1.0
-pnpm pake bump telegram 2.0.0     # explicit version
+| Option                 | What it does                                               |
+| ---------------------- | ---------------------------------------------------------- |
+| `url`, `name`          | Page to wrap and the resulting `.app` name                 |
+| `identifier`           | Bundle ID (defaults to `com.pake.<slug>`)                  |
+| `width`, `height`      | Initial window size                                        |
+| `hideTitleBar`         | Native title bar off, for sites with their own chrome      |
+| `newWindow`            | Open popups as real windows instead of navigating in place |
+| `safeDomain`           | Domains that stay inside the app (add your login provider) |
+| `microphone`, `camera` | Request the macOS permissions the site needs               |
+| `enableDragDrop`       | Allow dropping files into the page                         |
+| `userAgent`            | Override the UA — some sites gate features on it           |
+| `inject`               | Snippets from `apps/inject/` to inject into the page       |
+
+Injected snippets are named, not pathed:
+
+```json
+"inject": ["popup-to-redirect.js"]
 ```
 
-## Pipeline (GitHub Actions)
+Available snippets:
 
-`.github/workflows/pipeline.yml` runs three stages:
+- `popup-to-redirect.js` — turns login popups into full-page navigation, for
+  apps that run with `newWindow: false`.
+- `microphone-warmup.js` — grants and releases the mic on load so WebKit
+  populates the device list (needed for Slack huddles).
+- `huddle-debug.js` — temporary on-screen diagnostic for `window.open` and
+  `getUserMedia`; not meant to stay in an app's `inject` list.
 
-1. **quality** (PRs and pushes to `main`): lint, format, type-check, tests and
-   the tsdown build.
-2. **detect** (PRs and pushes): runs a per-app [semantic-release](https://semantic-release.gitbook.io)
-   analysis (`pnpm pake release-detect`). A commit releases an app when it is
-   a conventional commit (`fix:` patch, `feat:` minor, `BREAKING CHANGE`
-   major) and touches `apps/<id>.json`, or a shared path that changes every
-   app: `apps/inject/`, `patches/`, `package.json`, `pnpm-lock.yaml`. On PRs
-   it runs with `--dry`, so it only reports what would be released; only on
-   `main` does it push the seed tags and bump `appVersion` in a single
-   `chore(release): ... [skip ci]` commit that also prepends the release
-   notes to `CHANGELOG.md` and feeds a matrix with the apps to release.
-3. **release** (only pushes to `main`, one macOS job per app): builds the app
-   with pake, tags `<id>@<version>` and creates the GitHub Release with the
-   `.zip` of the `.app` as asset (`pnpm pake release-app <id>`). Apps are never
-   published from PRs.
+After any edit: `pnpm pake update <id>`.
 
-Release tags have the format `<id>@<version>` (e.g. `slack@1.0.11`). The first
-time an app goes through the pipeline there is no tag yet, so one is created
-from its current `appVersion` pointing at the root commit; versions continue
-from there. To preview locally what would be released:
+## Versions
 
 ```sh
-pnpm pake release-detect --dry
+pnpm pake bump slack              # 1.0.13 -> 1.0.14
+pnpm pake bump slack minor        # 1.0.14 -> 1.1.0
+pnpm pake bump slack 2.0.0        # explicit
 ```
 
-`pnpm pake update <id>` is equivalent to `bump` + `build` + `install`.
+Released apps are tagged `<id>@<version>` (e.g. `slack@1.0.13`) and each release
+carries the zipped `.app`. See [docs/RELEASES.md](docs/RELEASES.md).
 
-The `install` script only rebuilds when the version of the build in `dist/`
-does not match `appVersion`; if a build of that version already exists, it
-reuses the bundle and only copies it to `/Applications`.
-
-## Commands
+## Command reference
 
 | Command                                            | Description                                        |
 | -------------------------------------------------- | -------------------------------------------------- |
@@ -121,24 +140,31 @@ reuses the bundle and only copies it to `/Applications`.
 | `pnpm pake add <url> --name "N" [--set k=v]`       | Register a new app                                 |
 | `pnpm pake remove <id> [--uninstall]`              | Remove the app from the registry (+ /Applications) |
 | `pnpm pake build [id...] [--debug]`                | Build into `dist/<id>/` (all if no id is given)    |
-| `pnpm pake install [id...]`                        | Build if needed + copy to /Applications            |
+| `pnpm pake install [id...] [--debug]`              | Build if needed + copy to /Applications            |
 | `pnpm pake uninstall <id...>`                      | Remove the .app from /Applications                 |
 | `pnpm pake bump <id> [patch\|minor\|major\|x.y.z]` | Bump `appVersion`                                  |
 | `pnpm pake update <id...> [--release r]`           | bump + build + install                             |
-| `pnpm pake help`                                   | Help                                               |
+| `pnpm pake remake [id...] [--install]`             | Upgrade pake-cli, bump and rebuild                 |
+| `pnpm pake help`                                   | Help for any command                               |
 
-## Notes
+`release-detect` and `release-app` also exist; they are the CI entry points and
+are documented in [docs/RELEASES.md](docs/RELEASES.md).
 
-- The first Pake build is slow: it downloads its Tauri template and compiles
-  the Rust dependencies. The following ones are much faster.
-- With `"targets": "apple"` Pake produces a `.dmg`; the script mounts it,
-  extracts the `.app` into `dist/<id>/` and installs it from there. The
-  pipeline sets `PAKE_CREATE_APP=1` to get the `.app` straight away, since
-  creating the `.dmg` only to mount it again costs ~20s per app.
-- The `.app` bundles are installed with an ad-hoc signature (like any local
-  Tauri build); since they are compiled on your machine they carry no
-  Gatekeeper quarantine.
-- Do not use `pnpm install <app>`: `install` is pnpm's own command. Always
+## Good to know
+
+- The first build is slow: Pake downloads its Tauri template and compiles the
+  Rust dependencies. Later builds are much faster.
+- The `.app` bundles carry an ad-hoc signature, like any local Tauri build.
+  Since they are compiled on your machine they have no Gatekeeper quarantine.
+- Don't run `pnpm install <app>` — `install` is pnpm's own command. Always
   `pnpm pake install <app>`.
 - The `objc[...] GNotificationCenterDelegate is implemented in both...` warning
-  during the build is harmless (it comes from libvips/sharp, a Pake dependency).
+  during a build is harmless (it comes from libvips/sharp, a Pake dependency).
+- Builds land in `dist/<id>/`, which is git-ignored.
+
+## Documentation
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — dev setup, quality gates, commit conventions
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the registry, build and install work
+- [docs/RELEASES.md](docs/RELEASES.md) — versioning, tags and the CI pipeline
+- [CHANGELOG.md](CHANGELOG.md) — per-app release notes
