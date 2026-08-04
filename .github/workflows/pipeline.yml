@@ -49,17 +49,18 @@ jobs:
           fi
 
   release:
-    name: release ${{ matrix.id }}
+    name: release
     needs: check
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.check.outputs.has == 'true'
     runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.check.outputs.matrix) }}
     env:
       # Out of node_modules (a pnpm symlink farm) so it can be cached, and
       # shared by every app: only the `pake` crate itself embeds the per-app
       # config, its ~344 dependencies compile identically for all of them.
+      # That sharing is why the apps are released in one job instead of a
+      # matrix: with a runner each, every app recompiles the whole dependency
+      # graph and they all race to save the same cache key. Sequentially in a
+      # warm target dir only the `pake` crate and the link are per-app.
       CARGO_TARGET_DIR: ${{ github.workspace }}/.cargo-target
       # pake's release profile is tuned for binary size (codegen-units = 1,
       # lto = "thin"), and every app pays its whole-program link again: the
@@ -93,10 +94,17 @@ jobs:
             ${{ env.CARGO_TARGET_DIR }}
           key: cargo-${{ runner.os }}-${{ steps.cargo.outputs.key }}
           restore-keys: cargo-${{ runner.os }}-
-      - name: drop bundles left in the cached target dir
-        # They belong to whichever app populated the cache; leaving them around
-        # risks publishing a stale .app if a later build stops short.
-        run: rm -rf "$CARGO_TARGET_DIR"/*/release/bundle "$CARGO_TARGET_DIR"/release/bundle
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm pake release-app ${{ matrix.id }}
+          IDS: ${{ join(fromJSON(needs.check.outputs.matrix).include.*.id, ' ') }}
+        # One app failing must not skip the others (what fail-fast: false gave
+        # the matrix); the job still fails at the end. The bundle dir is dropped
+        # before each build: whatever is in there belongs to the cache or to the
+        # previous app, and risks publishing a stale .app if a build stops short.
+        run: |
+          fail=0
+          for id in $IDS; do
+            rm -rf "$CARGO_TARGET_DIR"/*/release/bundle "$CARGO_TARGET_DIR"/release/bundle
+            pnpm pake release-app "$id" || fail=1
+          done
+          exit $fail

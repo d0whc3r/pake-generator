@@ -52,14 +52,19 @@ runs on branches only report what would be released. On `main` it:
 - writes the new `appVersion` into each released `apps/<id>.json`, runs
   `pnpm format` over them, prepends the notes to `CHANGELOG.md`, and pushes a
   single `chore(release): bump <tags> [skip ci]` commit,
-- emits the matrix of apps to release plus the sha of that bump commit.
+- emits the list of apps to release plus the sha of that bump commit.
 
-### 2. `release` (only pushes to `main`, one macOS job per app)
+### 2. `release` (only pushes to `main`, one macOS job for every app)
 
-Checks out the bump commit, then `pnpm pake release-app <id>`: builds with pake,
-tags `<id>@<version>` and creates the GitHub Release with the zipped `.app`.
-`fail-fast: false`, so one broken app doesn't cancel the others. Apps are never
-published from a PR.
+Checks out the bump commit, then loops `pnpm pake release-app <id>` over the
+detected apps: builds with pake, tags `<id>@<version>` and creates the GitHub
+Release with the zipped `.app`. A failing app doesn't skip the rest, the job
+just fails at the end. Apps are never published from a PR.
+
+One job instead of a matrix because the Rust dependency graph is what costs:
+with a runner per app each one recompiles those ~344 crates and they all race to
+save the same cache key. Sequentially in a single warm `CARGO_TARGET_DIR` only
+the `pake` crate and the link are per-app.
 
 ## Seed tags
 
@@ -81,9 +86,9 @@ release job, so the workflow sets:
 The cargo cache is keyed on a hash of `pake-cli`'s `Cargo.lock` plus the two
 profile overrides — not on `pnpm-lock.yaml`, so bumping a JS devDependency
 doesn't throw away compiled crates, and changing a profile can't restore
-artifacts cargo would then discard as stale. Bundles left in the cached target
-dir are deleted before building, so a build that stops short can't publish
-another app's `.app`.
+artifacts cargo would then discard as stale. The bundle dir is deleted before
+each build — its contents belong to the cache or to the previous app in the
+loop — so a build that stops short can't publish another app's `.app`.
 
 ## Manual release
 
