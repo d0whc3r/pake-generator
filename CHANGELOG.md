@@ -1,5 +1,32 @@
 # Changelog
 
+## notion-calendar@1.0.3 (2026-08-04)
+
+## [1.0.3](https://github.com/d0whc3r/pake-generator/compare/notion-calendar@1.0.2...notion-calendar@1.0.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* format ([7213f81](https://github.com/d0whc3r/pake-generator/commit/7213f81729c7074b90b6af3e14e7441ee088be97))
+
+## notion@1.0.6 (2026-08-04)
+
+## [1.0.6](https://github.com/d0whc3r/pake-generator/compare/notion@1.0.5...notion@1.0.6) (2026-08-04)
+
+
+### Bug Fixes
+
+* format ([7213f81](https://github.com/d0whc3r/pake-generator/commit/7213f81729c7074b90b6af3e14e7441ee088be97))
+
+## slack@1.0.13 (2026-08-04)
+
+## [1.0.13](https://github.com/d0whc3r/pake-generator/compare/slack@1.0.12...slack@1.0.13) (2026-08-04)
+
+
+### Bug Fixes
+
+* format ([7213f81](https://github.com/d0whc3r/pake-generator/commit/7213f81729c7074b90b6af3e14e7441ee088be97))
+
 ## claude@1.0.1 (2026-08-04)
 
 ## [1.0.1](https://github.com/d0whc3r/pake-generator/compare/claude@1.0.0...claude@1.0.1) (2026-08-04)
