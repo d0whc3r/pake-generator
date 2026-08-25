@@ -41,8 +41,8 @@ importers:
         specifier: 17.3.0
         version: 17.3.0
       oclif:
-        specifier: 4.23.29
-        version: 4.23.29(@types/node@26.1.2)
+        specifier: 4.24.0
+        version: 4.24.0(@types/node@26.1.2)
       oxfmt:
         specifier: 0.62.0
         version: 0.62.0
@@ -100,6 +100,9 @@ packages:
   '@aws-sdk/core@3.977.4':
     resolution: {integrity: sha512-CEkcQlMOQJCvul60U7wdAOACjtdgFWDsfJI+6wUOGdhGNV2lGbuJpi/R50QLpFG3Tp+sQxa/RmzC3X7KHbhuTA==}
     engines: {node: '>=20.0.0'}
+    deprecated: |-
+      Deprecated due to Document number parsing bug in JSON, see
+        https://github.com/aws/aws-sdk-js-v3/issues/8246. Newer version available.
 
   '@aws-sdk/credential-provider-env@3.972.65':
     resolution: {integrity: sha512-lJT2aRw9wCV8jPHyFJjdZLD4HTydL6/22AnCSOB8e/LqOc55nEJGLHkJQeSxhn8QiqyjFwPKQFtMw0ovjRUY/g==}
@@ -770,12 +773,12 @@ packages:
     resolution: {integrity: sha512-0LkCjFGRGY7AaZb5p8gDcSPNkFrn+vNLKvGe1f7j/Z6U9Uy1cV6R2eWVsjuZTGQ3RvBvjquFPwLy1jTgR5l87w==}
     engines: {node: '>=18.0.0'}
 
-  '@oclif/plugin-not-found@3.2.91':
-    resolution: {integrity: sha512-ICFrUeotKD3gsBOZR5mrgz2y1QDPM/C6hcu1i2tFjfW7AVnKINvsgANFou0ObLJGkslNS+6uX+1qcny37vJcyg==}
+  '@oclif/plugin-not-found@3.3.0':
+    resolution: {integrity: sha512-GbdWJOmmBO3xmrVjDXeWG7tXl4vzeGZ+af9ztCfAmhOPEkd/+eeAAadzQPeZoygedqCvsdux3QLq9/MAxusPKg==}
     engines: {node: '>=18.0.0'}
 
-  '@oclif/plugin-warn-if-update-available@3.1.71':
-    resolution: {integrity: sha512-oEw6vtA55w82CkSX9PyVC3V7Ac4UAIlMMUcc8ACOTeOTm7wwg+p5+HjiYozNOV+W7UU3VZy4jzOV1ap8Osdnyw==}
+  '@oclif/plugin-warn-if-update-available@3.2.0':
+    resolution: {integrity: sha512-E7l+/NTjddOi32Q9G1CWzEtuh0EwNylVHfTRlFxlZD50v1oBqBpziWh+Dzz6oAIe4ee5U7EUc7lP22aLxpW3vA==}
     engines: {node: '>=18.0.0'}
 
   '@octokit/auth-token@6.0.0':
@@ -2811,8 +2814,8 @@ packages:
     resolution: {integrity: sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==}
     engines: {node: '>=12.20.0'}
 
-  oclif@4.23.29:
-    resolution: {integrity: sha512-pUekmMh+wwIbFq3xX1EfkgZ7RuYuuSbdhJiB+20zqSfGE8Tt9T+K9br1/vmsaIOxfDo0Dw3jxLBk4JZOMFEMeQ==}
+  oclif@4.24.0:
+    resolution: {integrity: sha512-qBSOMDV7T9G7QkJM1XXeC08jVnGjXK/EQaol6MpkXN1ELEOzi/9SeuwElH3zQuCRVEE+MlJLME6nQzNlwN5zVw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -4372,7 +4375,7 @@ snapshots:
     dependencies:
       '@oclif/core': 4.13.3
 
-  '@oclif/plugin-not-found@3.2.91(@types/node@26.1.2)':
+  '@oclif/plugin-not-found@3.3.0(@types/node@26.1.2)':
     dependencies:
       '@inquirer/prompts': 7.10.1(@types/node@26.1.2)
       '@oclif/core': 4.13.3
@@ -4381,7 +4384,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/node'
 
-  '@oclif/plugin-warn-if-update-available@3.1.71':
+  '@oclif/plugin-warn-if-update-available@3.2.0':
     dependencies:
       '@oclif/core': 4.13.3
       ansis: 3.17.0
@@ -6070,7 +6073,7 @@ snapshots:
 
   obug@2.1.4: {}
 
-  oclif@4.23.29(@types/node@26.1.2):
+  oclif@4.24.0(@types/node@26.1.2):
     dependencies:
       '@aws-sdk/client-cloudfront': 3.1101.0
       '@aws-sdk/client-s3': 3.1101.0
@@ -6079,8 +6082,8 @@ snapshots:
       '@inquirer/select': 2.5.0
       '@oclif/core': 4.13.3
       '@oclif/plugin-help': 6.2.56
-      '@oclif/plugin-not-found': 3.2.91(@types/node@26.1.2)
-      '@oclif/plugin-warn-if-update-available': 3.1.71
+      '@oclif/plugin-not-found': 3.3.0(@types/node@26.1.2)
+      '@oclif/plugin-warn-if-update-available': 3.2.0
       ansis: 3.17.0
       async-retry: 1.3.3
       change-case: 4.1.2
