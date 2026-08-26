@@ -1,5 +1,14 @@
 # Changelog
 
+## telegram@1.0.4 (2026-08-26)
+
+## [1.0.4](https://github.com/d0whc3r/pake-generator/compare/telegram@1.0.3...telegram@1.0.4) (2026-08-26)
+
+
+### Bug Fixes
+
+* update patch ([70d1319](https://github.com/d0whc3r/pake-generator/commit/70d1319fbf40266d32a41d4d1a07b6d05ac1fa21))
+
 ## notion-calendar@1.0.4 (2026-08-04)
 
 ## [1.0.4](https://github.com/d0whc3r/pake-generator/compare/notion-calendar@1.0.3...notion-calendar@1.0.4) (2026-08-04)
