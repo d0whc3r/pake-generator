@@ -9,5 +9,5 @@
   "newWindow": true,
   "safeDomain": "figma.com,*.figma.com,accounts.google.com",
   "targets": "apple",
-  "appVersion": "1.0.2"
+  "appVersion": "1.0.3"
 }
