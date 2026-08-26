@@ -1,20 +1,18 @@
 diff --git a/src-tauri/Cargo.lock b/src-tauri/Cargo.lock
-index 75ba4aabdbe2be14be0c771584ca3b67c5eb4d15..3c1689356cbf7ee860f5a39b0fd87dd6e252dce6 100644
 --- a/src-tauri/Cargo.lock
 +++ b/src-tauri/Cargo.lock
-@@ -2571,6 +2571,7 @@ dependencies = [
-  "objc2",
+@@ -2572,6 +2572,7 @@
   "objc2-app-kit",
   "objc2-foundation",
+  "objc2-web-kit",
 + "regex",
   "serde",
   "serde_json",
   "tauri",
 diff --git a/src-tauri/Cargo.toml b/src-tauri/Cargo.toml
-index 0c3d1e39d46c36b34f139cbd0c447f56f44c0325..31f080aac9b5ace7dd8f2a5500b6339e623d2ed2 100644
 --- a/src-tauri/Cargo.toml
 +++ b/src-tauri/Cargo.toml
-@@ -21,6 +21,7 @@ tauri-build = { version = "2.5.5", features = [] }
+@@ -21,6 +21,7 @@
  serde_json = "1.0.149"
  serde = { version = "1.0.228", features = ["derive"] }
  tokio = { version = "1.49.0", features = ["time"] }
@@ -23,10 +21,9 @@ index 0c3d1e39d46c36b34f139cbd0c447f56f44c0325..31f080aac9b5ace7dd8f2a5500b6339e
    "tray-icon",
    "image-ico",
 diff --git a/src-tauri/src/app/window.rs b/src-tauri/src/app/window.rs
-index 4efcb937e0cbe552740bce0836519f3ef55b3212..6641acb69badb67331ea093f1372f61b95cb4886 100644
 --- a/src-tauri/src/app/window.rs
 +++ b/src-tauri/src/app/window.rs
-@@ -16,6 +16,7 @@ use tauri::{
+@@ -20,6 +20,7 @@
      webview::{DownloadEvent, NewWindowFeatures, NewWindowResponse},
      AppHandle, Config, Manager, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
  };
@@ -34,7 +31,7 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..6641acb69badb67331ea093f1372f61b
  
  #[cfg(target_os = "windows")]
  use windows_sys::Win32::UI::{
-@@ -150,6 +151,66 @@ pub fn reapply_window_icon(window: &WebviewWindow) {
+@@ -172,6 +173,66 @@
  #[cfg(not(target_os = "windows"))]
  pub fn reapply_window_icon(_window: &WebviewWindow) {}
  
@@ -101,7 +98,7 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..6641acb69badb67331ea093f1372f61b
  struct WindowBuildOptions<'a> {
      label: &'a str,
      url: WebviewUrl,
-@@ -157,6 +218,24 @@ struct WindowBuildOptions<'a> {
+@@ -179,6 +240,24 @@
      new_window_features: Option<NewWindowFeatures>,
  }
  
@@ -126,7 +123,7 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..6641acb69badb67331ea093f1372f61b
  fn open_requested_window(
      app: &AppHandle,
      config: &PakeConfig,
-@@ -371,23 +450,37 @@ fn build_window(
+@@ -465,23 +544,37 @@
      }
  
      if window_config.new_window {
@@ -178,11 +175,11 @@ index 4efcb937e0cbe552740bce0836519f3ef55b3212..6641acb69badb67331ea093f1372f61b
          });
      }
  
+Only in work/src-tauri/src/app: window.rs.orig
 diff --git a/src-tauri/src/inject/event.js b/src-tauri/src/inject/event.js
-index 8dc757b40964bdcea9bd6c007449785658331983..98f70500ebc54eb0cde04386f42119350a3d6d8a 100644
 --- a/src-tauri/src/inject/event.js
 +++ b/src-tauri/src/inject/event.js
-@@ -673,6 +673,28 @@ document.addEventListener("DOMContentLoaded", () => {
+@@ -724,10 +724,32 @@
      invoke("plugin:shell|open", {
        path: url,
      }).catch((error) => {
@@ -200,29 +197,34 @@ index 8dc757b40964bdcea9bd6c007449785658331983..98f70500ebc54eb0cde04386f4211935
 +      } catch (openerError) {
 +        console.error("Failed to delegate URL to the opener window:", openerError);
 +      }
-+      console.error("Failed to open URL with shell:", url, error);
-+    });
-+  };
-+
+       console.error("Failed to open URL with shell:", url, error);
+     });
+   };
+ 
 +  // Lets popups route external links through a window whose webview label
 +  // ("pake") holds the shell:allow-open permission.
 +  window.pakeOpenExternal = (url) => {
 +    invoke("plugin:shell|open", { path: url }).catch((error) => {
-       console.error("Failed to open URL with shell:", url, error);
-     });
-   };
-@@ -858,6 +880,14 @@ document.addEventListener("DOMContentLoaded", () => {
-       return originalWindowOpen.call(window, url, name, specs);
++      console.error("Failed to open URL with shell:", url, error);
++    });
++  };
++
+   // Check if URL belongs to the same domain (including subdomains)
+   const isSameDomain = (url) => {
+     try {
+@@ -902,6 +924,14 @@
      }
  
+     if (shouldBypassPakeLinkHandling(url)) {
++      return originalWindowOpen.call(window, url, name, specs);
++    }
++
 +    // Popups the site fills through window.opener (a Slack huddle, for one)
 +    // start as about:blank. There is no URL to navigate or to hand to the
 +    // system browser: the only thing that works is a real window, so go
 +    // straight to the native handler.
 +    if (!url || url === "about:blank") {
-+      return originalWindowOpen.call(window, url, name, specs);
-+    }
-+
-     // Avoid macOS WebKit auth-popup crashes by navigating auth URLs in-place.
-     if (window.isAuthPopup(url, name)) {
-       try {
+       return originalWindowOpen.call(window, url, name, specs);
+     }
+ 
+Only in work/src-tauri/src/inject: event.js.orig
