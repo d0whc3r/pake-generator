@@ -11,7 +11,11 @@ export default class Update extends Command {
   ]
 
   static args = {
-    apps: Args.string({ description: 'Comma-separated IDs', required: true }),
+    apps: Args.string({
+      default: '',
+      description: 'Comma-separated IDs',
+      required: false,
+    }),
   }
 
   static flags = {
@@ -26,7 +30,7 @@ export default class Update extends Command {
     const { args, flags } = await this.parse(Update)
     const ids = parseIds(args.apps)
     if (ids.length === 0) {
-      this.error('give at least one id: update telegram,slack')
+      this.error('give at least one id: update telegram,slack (or use `update-all`)')
     }
     for (const id of ids) {
       const app = bumpAppVersion(id, flags.release, (msg) => this.log(msg))

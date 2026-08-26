@@ -162,6 +162,7 @@ carries the zipped `.app`. See [docs/RELEASES.md](docs/RELEASES.md).
 | `pnpm pake uninstall <id...>`                      | Remove the .app from /Applications                 |
 | `pnpm pake bump <id> [patch\|minor\|major\|x.y.z]` | Bump `appVersion`                                  |
 | `pnpm pake update <id...> [--release r]`           | bump + build + install                             |
+| `pnpm pake update-all [--release r]`               | bump + build + install every registered app        |
 | `pnpm pake remake [id...] [--install]`             | Upgrade pake-cli, bump and rebuild                 |
 | `pnpm pake help`                                   | Help for any command                               |
 
