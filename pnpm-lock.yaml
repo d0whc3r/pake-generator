@@ -5,9 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  pake-cli@3.15.7:
-    hash: e6d1dcf0ad79f8f760a9b0d3d2b02ea277d65f8af6fcb8c57ee6659dd8e6ef53
-    path: patches/pake-cli@3.15.7.patch
+  pake-cli@3.15.7: e6d1dcf0ad79f8f760a9b0d3d2b02ea277d65f8af6fcb8c57ee6659dd8e6ef53
 
 importers:
 
