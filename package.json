@@ -39,7 +39,7 @@
     "@vitest/coverage-v8": "4.1.11",
     "husky": "9.1.7",
     "lint-staged": "17.3.0",
-    "oclif": "4.24.0",
+    "oclif": "5.0.1",
     "oxfmt": "0.65.0",
     "oxlint": "1.80.0",
     "oxlint-tsgolint": "7.0.2001",
